@@ -1,13 +1,22 @@
-# Birth weigth in Kg
-BW <- 40
+#calculation of liveweight from birth (Jan 1) to year 1 (Dec 30)
 
-# daily weight gain in kg
-WG <- 0.8
+n <- 100
+ID <- c(01001:01100)
+BW <- rnorm(n, 50, 10) #birth weight
+DWG <- rnorm(n, 0.8, 0.4) #daily weight gain
+GP <- runif(n, min = 0.1, max = 0.9) #genetic potential
+d <- c(1:365)
 
-#weight of an animal on day d
-WT <- function(d){
-  LWT <- BW + WG * d
-  return(LWT)
+#calculation of weights at day d
+
+LWT <- function(d) {
+  BW + DWG *d
 }
 
-#calculatio of liveweight from birth (day 0) to death (day 3650)
+
+for (i in ID) {
+  WT<- BW + DWG *d
+  Print(WT[i])
+}
+
+result <- cbind(ID, GP, BW, DWG)
