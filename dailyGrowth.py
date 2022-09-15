@@ -1,11 +1,15 @@
 import numpy as np
 from tabulate import tabulate as tb
 
-# BW = np.random.choice(range(40, 61))
-# GP = np.random.choice(np.arange(0.1, 1, 0.1))
+# BW = np.random.normal(40, 10)
+# GP = np.random.uniform(0.1, 1)
+
 ID = 1001
-BW = 50
-GP = 0.5
+
+BW = input("Birth weight:")
+BW = float(BW)
+GP = input("Genetic potential:")
+GP = float(GP)
 
 Month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
@@ -27,7 +31,6 @@ DWG_Nov = BW/50 + GP + FA["Nov"]/6
 DWG_Dec = BW/50 + GP + FA["Dec"]/6
 
 ######### animal weights calculation for the month of January ###########
-#########################################################################
 WT_Jan = []
 for i in range(1, 32): 
     CALC_Jan = BW + DWG_Jan * (i - 1)
@@ -36,7 +39,6 @@ for i in range(1, 32):
 FWT_Jan = WT_Jan[30]
 
 ######### animal weights calculation for the month of February ##########
-#########################################################################
 WT_Feb = []
 for i in range(1, 29): 
     CALC_Feb = FWT_Jan + DWG_Feb * i
@@ -45,7 +47,6 @@ for i in range(1, 29):
 FWT_Feb = WT_Feb[27]
 
 ######### animal weights calculation for the month of March ###########
-#######################################################################
 WT_Mar = []
 for i in range(1, 32): 
     CALC_Mar = FWT_Feb + DWG_Mar * i
@@ -54,7 +55,6 @@ for i in range(1, 32):
 FWT_Mar = WT_Mar[30]
 
 ######### animal weights calculation for the month of April ###########
-#######################################################################
 WT_Apr = []
 for i in range(1, 31): 
     CALC_Apr = FWT_Mar + DWG_Apr * i
@@ -63,7 +63,6 @@ for i in range(1, 31):
 FWT_Apr = WT_Apr[29]
 
 ######### animal weights calculation for the month of May ###########
-#####################################################################
 WT_May = []
 for i in range(1, 32): 
     CALC_May = FWT_Apr + DWG_May * i
@@ -72,7 +71,6 @@ for i in range(1, 32):
 FWT_May = WT_May[30]
 
 ######### animal weights calculation for the month of June ###########
-######################################################################
 WT_Jun = []
 for i in range(1, 31): 
     CALC_Jun = FWT_May + DWG_Jun * i
@@ -81,7 +79,6 @@ for i in range(1, 31):
 FWT_Jun = WT_Jun[29]
 
 ######### animal weights calculation for the month of July ###########
-######################################################################
 WT_Jul = []
 for i in range(1, 32): 
     CALC_Jul = FWT_Jun + DWG_Jul * i
@@ -90,7 +87,6 @@ for i in range(1, 32):
 FWT_Jul = WT_Jul[30]
 
 ######### animal weights calculation for the month of August ###########
-########################################################################
 WT_Aug = []
 for i in range(1, 32): 
     CALC_Aug = FWT_Jul + DWG_Aug * i
@@ -99,7 +95,6 @@ for i in range(1, 32):
 FWT_Aug = WT_Aug[30]
 
 ######### animal weights calculation for the month of September ###########
-###########################################################################
 WT_Sep = []
 for i in range(1, 31): 
     CALC_Sep = FWT_Aug + DWG_Sep * i
@@ -108,7 +103,6 @@ for i in range(1, 31):
 FWT_Sep = WT_Sep[29]
 
 ######### animal weights calculation for the month of October ###########
-#########################################################################
 WT_Oct = []
 for i in range(1, 32): 
     CALC_Oct = FWT_Sep + DWG_Oct * i
@@ -117,7 +111,6 @@ for i in range(1, 32):
 FWT_Oct = WT_Oct[30]
 
 ######### animal weights calculation for the month of November ###########
-##########################################################################
 WT_Nov = []
 for i in range(1, 31): 
     CALC_Nov = FWT_Oct + DWG_Nov * i
@@ -126,7 +119,6 @@ for i in range(1, 31):
 FWT_Nov = WT_Nov[29]
 
 ######### animal weights calculation for the month of December ###########
-##########################################################################
 WT_Dec = []
 for i in range(1, 32): 
     CALC_Dec = FWT_Nov + DWG_Dec * i
@@ -137,5 +129,5 @@ FWT_Dec = WT_Dec[29]
 # tabulation of weight data
 table = {'January': WT_Jan, "February": WT_Feb, "March": WT_Mar, "April": WT_Apr, "May": WT_May, "June": WT_Jun, "July": WT_Jul, "August": WT_Aug, "September": WT_Sep, "October": WT_Oct, "November": WT_Nov, "December": WT_Dec}
 
-print ("Daily weights of an animal with id:", ID, "\n")
+print ("Daily weights of the animal:" "\n")
 print(tb(table, headers='keys'))
