@@ -1,57 +1,39 @@
 import numpy as np
 from tabulate import tabulate as tb
 
-# BW = np.random.normal(40, 10)
-# GP = np.random.uniform(0.1, 1)
+BW = 50
+# for the month of January
+ME_Jan = 4 # Mcal per Kg
+NEm_Jan = 1.37 * ME_Jan -0.138 * pow(ME_Jan, 2) + 0.0105 * pow(ME_Jan, 3) - 1.12
+NEg_Jan = 1.42 * ME_Jan -0.174 * pow(ME_Jan, 2) + 0.0122 *pow(ME_Jan, 3) - 1.65
+FAI_Jan = 1
 
-ID = 1001
-LWT = 0
-
-BW = input("Birth weight:")
-BW = float(BW)
-
-Month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-# forage availability index for each month; dependa on forage quantity
-FAI = {"Jan": 1, "Feb": 1, "Mar": 0.9, "Apr": 0.8, "May": 0.6, "Jun": 0.7, "Jul": 0.6, "Aug": 0.5, "Sep": 0.5, "Oct": 0.7, "Nov": 0.8, "Dec": 0.9}
-
-# Metabolic energy present in feed (Mcal/kg); depends on forage quality
-ME = {"Jan": 3, "Feb": 3, "Mar": 3, "Apr": 2, "May": 1, "Jun": 2, "Jul": 1, "Aug": 1, "Sep": 1, "Oct": 2, "Nov": 2, "Dec": 3}
-
-# Net energy in forage for maintenance
-NEm = 1.37 * ME - 0.138 * ME**2 + 0.0105 * ME**3 -1.12
-
-# Net energy in forage for growth
-NEg = 1.42 * ME - 0.174 * ME**2 + 0.0122 * ME**3 -1.65
-
-# Maximum feed intake
-MFI = LWT**0.75 * (0.1493 * NEm - 0.046 * NEm**2 - 0.0196)
-
-# Actual feed intake
-AFI = MFI * FAI
-
-# Net energy available to animal for weight gain
-NEG = (AFI - NEm) * NEg
-
-# Liveweight gain 
-DWG = 13.91 * NEG**0.9116 * LWT**-0.6837
-
-###### calculation for January ##########
-NEm_Jan = 1.37 * ME["Jan"] - 0.138 * ME["jan"]**2 + 0.0105 * ME["Jan"]**3 -1.12
-NEg_Jan = 1.42 * ME["Jan"] - 0.174 * ME["Jan"]**2 + 0.0122 * ME["Jan"]**3 -1.65
-MFI_Jan = LWT**0.75 * (0.1493 * NEm_Jan - 0.046 * NEm_Jan**2 - 0.0196)
-AFI_Jan = MFI_Jan * FAI["Jan"]
-NEG_Jan = (AFI_Jan - NEm_Jan) * NEg_Jan
-
-
+# for Jan 1
 LWT_Jan1 = 50
-# Daily weight gain
-DWG_Jan1 = 13.91 * NEG_Jan**0.9116 * LWT_Jan1**-0.6837
+MFI_Jan1 = pow(LWT_Jan1, 0.75) * (0.1493 * NEm_Jan - 0.046 * NEm_Jan**2 - 0.0196)
+
+AFI_Jan1 = MFI_Jan1 * FAI_Jan
+NEG_Jan1 = (AFI_Jan1 - NEm_Jan) * NEg_Jan
+LWG_Jan1 = 13.91 * pow(NEG_Jan1, 0.9116) * pow(LWT_Jan1, -0.6837)
+
+# for jan 2
+LWT_Jan2 = LWT_Jan1 + LWG_Jan1
+MFI_Jan2 = pow(LWT_Jan2, 0.75) * (0.1493 * NEm_Jan - 0.046 * NEm_Jan**2 - 0.0196)
+AFI_Jan2 = MFI_Jan2 * FAI_Jan
+NEG_Jan2 = (AFI_Jan2 - NEm_Jan) * NEg_Jan
+LWG_Jan2 = 13.91 * pow(NEG_Jan2, 0.9116) * pow(LWT_Jan2, -0.6837)
+
+# for jan 3
+LWT_Jan3 = LWT_Jan2 + LWG_Jan2
+MFI_Jan3 = pow(LWT_Jan3, 0.75) * (0.1493 * NEm_Jan - 0.046 * NEm_Jan**2 - 0.0196)
+AFI_Jan3 = MFI_Jan3 * FAI_Jan
+NEG_Jan3 = (AFI_Jan3 - NEm_Jan) * NEg_Jan
+LWG_Jan3 = 13.91 * pow(NEG_Jan3, 0.9116) * pow(LWT_Jan3, -0.6837)
+
+# for jan 4
+LWT_Jan4 = LWT_Jan3 + LWG_Jan3
+
+LWT_Jan = [LWT_Jan1, LWG_Jan2, LWT_Jan3, LWT_Jan4]
+print(LWT_Jan)
 
 
-LWT_Jan2 = LWT_Jan1 + DWG_Jan1
-DWG_Jan2 = 13.91 * NEG_Jan**0.9116 * LWT_Jan2**-0.6837
-
-
-WT_Jan = [LWT_Jan1, LWT_Jan2]
-print(WT_Jan)
