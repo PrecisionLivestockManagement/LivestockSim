@@ -7,7 +7,7 @@ refdata <- read.csv(file = 'ClusterAnalyses/clusterAnalysis.csv')
 row.names(refdata) <- refdata[,1]
 
 # removing unwanted columns
-refdata2 <- refdata[, -c(1, 22, 38:58)]
+refdata2 <- refdata[, -1]
 
 ######### cluster analysis of all models #########
 ##################################################
@@ -24,158 +24,458 @@ hc_complete <- hclust(dist_survey, method = "complete")
 plot(hc_complete, main = 'Complete Linkage')
 
 #Put papers into groups using cutree function based on a cluster height
-clust_complete <- cutree(hc_complete, h = 0.9)
+clust_complete <- cutree(hc_complete, h = 0.95)
 segment_complete <- mutate(refdata2, cluster = clust_complete)
 count(segment_complete, cluster)
 
-subset(clust_complete, clust_complete == 1)
-subset(clust_complete, clust_complete == 2)
-subset(clust_complete, clust_complete == 3)
-subset(clust_complete, clust_complete == 4)
-subset(clust_complete, clust_complete == 5)
-subset(clust_complete, clust_complete == 6)
-subset(clust_complete, clust_complete == 7)
-subset(clust_complete, clust_complete == 8)
-subset(clust_complete, clust_complete == 9)
-subset(clust_complete, clust_complete == 10)
-subset(clust_complete, clust_complete == 11)
+cluster_1 <- subset(segment_complete, clust_complete == 1)
+cluster_2 <- subset(segment_complete, clust_complete == 2)
+cluster_3 <- subset(segment_complete, clust_complete == 3)
+cluster_4 <- subset(segment_complete, clust_complete == 4)
+cluster_5 <- subset(segment_complete, clust_complete == 5)
 
 
-###### cluster analysis of biological models #####
-##################################################
+# Further analysis
+## ttest_clust1_modeltype <- c(t.test(cluster_1$Biological), t.test(cluster_1$Biophysical))
+t.test(cluster_1$Biological, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Biological == 1))
+t.test(cluster_1$Biophysical, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Biophysical == 1))
+t.test(cluster_1$Bioeconomic, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Bioeconomic == 1))
+t.test(cluster_1$Agroecosystem, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Agroecosystem == 1))
+t.test(cluster_1$Population, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Population == 1))
 
-refdata3 <- subset(refdata2, Biological == 1)
-Data_biological <- refdata3[, -c(1:5)]
-
-#Using dist core package calculate distance between rows note this is for binary data
-dist_biological <- dist(Data_biological, method = 'binary')
-
-
-#Using hclust core package this clusters rows based on the dissimilarity output
-hc_biological <- hclust(dist_biological, method = "complete")
-
-
-#Provide a plot of the output - there are other plotting options that might be better
-plot(hc_biological, main = 'Biological Models Linkage')
-
-#Put papers into groups using cutree function based on a cluster height
-clust_biological <- cutree(hc_biological, h = 0.9)
-segment_biological <- mutate(Data_biological, cluster = clust_biological)
-count(segment_biological, cluster)
-
-subset(clust_biological, clust_biological == 1)
-
-
-###### cluster analysis of biophysical models #####
-##################################################
-
-refdata4 <- subset(refdata2, Biophysical == 1)
-Data_biophysical <- refdata4[, -c(1:5)]
-
-#Using dist core package calculate distance between rows note this is for binary data
-dist_biophysical <- dist(Data_biophysical, method = 'binary')
+t.test(cluster_2$Biological, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Biological == 1))
+t.test(cluster_2$Biophysical, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Biophysical == 1))
+t.test(cluster_2$Bioeconomic, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Bioeconomic == 1))
+t.test(cluster_2$Agroecosystem, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Agroecosystem == 1))
+t.test(cluster_2$Population, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Population == 1))
 
 
-#Using hclust core package this clusters rows based on the dissimilarity output
-hc_biophysical <- hclust(dist_biophysical, method = "complete")
+t.test(cluster_3$Biological, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Biological == 1))
+t.test(cluster_3$Biophysical, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Biophysical == 1))
+t.test(cluster_3$Bioeconomic, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Bioeconomic == 1))
+t.test(cluster_3$Agroecosystem, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Agroecosystem == 1))
+t.test(cluster_3$Population, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Population == 1))
+
+t.test(cluster_4$Biological, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Biological == 1))
+t.test(cluster_4$Biophysical, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Biophysical == 1))
+t.test(cluster_4$Bioeconomic, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Bioeconomic == 1))
+t.test(cluster_4$Agroecosystem, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Agroecosystem == 1))
+t.test(cluster_4$Population, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Population == 1))
+
+t.test(cluster_5$Biological, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Biological == 1))
+t.test(cluster_5$Biophysical, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Biophysical == 1))
+t.test(cluster_5$Bioeconomic, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Bioeconomic == 1))
+t.test(cluster_5$Agroecosystem, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Agroecosystem == 1))
+t.test(cluster_5$Population, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Population == 1))
+
+# t test modelling approach
+t.test(cluster_1$Static, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Static == 1))
+t.test(cluster_1$Dynamic, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Dynamic == 1))
+t.test(cluster_1$Analytical, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Analytical == 1))
+t.test(cluster_1$Deterministic, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Deterministic == 1))
+t.test(cluster_1$Stochastic, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Stochastic == 1))
+t.test(cluster_1$Theoretical.Conceptual, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Theoretical.Conceptual == 1))
+t.test(cluster_1$Empirical, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Empirical == 1))
+t.test(cluster_1$Other, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Other == 1))
+
+t.test(cluster_2$Static, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Static == 1))
+t.test(cluster_2$Dynamic, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Dynamic == 1))
+t.test(cluster_2$Analytical, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Analytical == 1))
+t.test(cluster_2$Deterministic, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Deterministic == 1))
+t.test(cluster_2$Stochastic, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Stochastic == 1))
+t.test(cluster_2$Theoretical.Conceptual, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Theoretical.Conceptual == 1))
+t.test(cluster_2$Empirical, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Empirical == 1))
+t.test(cluster_2$Other, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Other == 1))
+
+t.test(cluster_3$Static, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Static == 1))
+t.test(cluster_3$Dynamic, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Dynamic == 1))
+t.test(cluster_3$Analytical, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Analytical == 1))
+t.test(cluster_3$Deterministic, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Deterministic == 1))
+t.test(cluster_3$Stochastic, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Stochastic == 1))
+t.test(cluster_3$Theoretical.Conceptual, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Theoretical.Conceptual == 1))
+t.test(cluster_3$Empirical, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Empirical == 1))
+t.test(cluster_3$Other, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Other == 1))
+
+t.test(cluster_4$Static, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Static == 1))
+t.test(cluster_4$Dynamic, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Dynamic == 1))
+t.test(cluster_4$Analytical, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Analytical == 1))
+t.test(cluster_4$Deterministic, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Deterministic == 1))
+t.test(cluster_4$Stochastic, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Stochastic == 1))
+t.test(cluster_4$Theoretical.Conceptual, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Theoretical.Conceptual == 1))
+t.test(cluster_4$Empirical, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Empirical == 1))
+t.test(cluster_4$Other, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Other == 1))
+
+t.test(cluster_5$Static, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Static == 1))
+t.test(cluster_5$Dynamic, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Dynamic == 1))
+t.test(cluster_5$Analytical, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Analytical == 1))
+t.test(cluster_5$Deterministic, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Deterministic == 1))
+t.test(cluster_5$Stochastic, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Stochastic == 1))
+t.test(cluster_5$Theoretical.Conceptual, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Theoretical.Conceptual == 1))
+t.test(cluster_5$Empirical, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Empirical == 1))
+t.test(cluster_5$Other, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Other == 1))
+
+# t test scope of model
+t.test(cluster_1$Individual.animal, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Individual.animal == 1))
+t.test(cluster_1$Cow.calf, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Cow.calf == 1))
+t.test(cluster_1$Herd.level, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Herd.level == 1))
+t.test(cluster_1$Whole.farm, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Whole.farm == 1))
+t.test(cluster_1$Enterprise, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Enterprise == 1))
+
+t.test(cluster_2$Individual.animal, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Individual.animal == 1))
+t.test(cluster_2$Cow.calf, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Cow.calf == 1))
+t.test(cluster_2$Herd.level, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Herd.level == 1))
+t.test(cluster_2$Whole.farm, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Whole.farm == 1))
+t.test(cluster_2$Enterprise, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Enterprise == 1))
+
+t.test(cluster_3$Individual.animal, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Individual.animal == 1))
+t.test(cluster_3$Cow.calf, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Cow.calf == 1))
+t.test(cluster_3$Herd.level, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Herd.level == 1))
+t.test(cluster_3$Whole.farm, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Whole.farm == 1))
+t.test(cluster_3$Enterprise, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Enterprise == 1))
+
+t.test(cluster_4$Individual.animal, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Individual.animal == 1))
+t.test(cluster_4$Cow.calf, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Cow.calf == 1))
+t.test(cluster_4$Herd.level, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Herd.level == 1))
+t.test(cluster_4$Whole.farm, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Whole.farm == 1))
+t.test(cluster_4$Enterprise, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Enterprise == 1))
+
+t.test(cluster_5$Individual.animal, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Individual.animal == 1))
+t.test(cluster_5$Cow.calf, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Cow.calf == 1))
+t.test(cluster_5$Herd.level, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Herd.level == 1))
+t.test(cluster_5$Whole.farm, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Whole.farm == 1))
+t.test(cluster_5$Enterprise, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Enterprise == 1))
+
+# ttest focus area
+t.test(cluster_1$Productivity, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Productivity == 1))
+t.test(cluster_1$Economy, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Economy == 1))
+t.test(cluster_1$Farm.management, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Farm.management == 1))
+t.test(cluster_1$Animal.health, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Animal.health == 1))
+t.test(cluster_1$Environmnet, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Environmnet == 1))
+t.test(cluster_1$pasture.forage, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$pasture.forage == 1))
+t.test(cluster_1$Resource.use, conf.level = 0.99)
+nrow(subset(cluster_1,cluster_1$Resource.use == 1))
+
+t.test(cluster_2$Productivity, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Productivity == 1))
+t.test(cluster_2$Economy, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Economy == 1))
+t.test(cluster_2$Farm.management, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Farm.management == 1))
+t.test(cluster_2$Animal.health, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Animal.health == 1))
+t.test(cluster_2$Environmnet, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Environmnet == 1))
+t.test(cluster_2$pasture.forage, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$pasture.forage == 1))
+t.test(cluster_2$Resource.use, conf.level = 0.99)
+nrow(subset(cluster_2,cluster_2$Resource.use == 1))
+
+t.test(cluster_3$Productivity, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Productivity == 1))
+t.test(cluster_3$Economy, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Economy == 1))
+t.test(cluster_3$Farm.management, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Farm.management == 1))
+t.test(cluster_3$Animal.health, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Animal.health == 1))
+t.test(cluster_3$Environmnet, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Environmnet == 1))
+t.test(cluster_3$pasture.forage, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$pasture.forage == 1))
+t.test(cluster_3$Resource.use, conf.level = 0.99)
+nrow(subset(cluster_3,cluster_3$Resource.use == 1))
+
+t.test(cluster_4$Productivity, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Productivity == 1))
+t.test(cluster_4$Economy, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Economy == 1))
+t.test(cluster_4$Farm.management, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Farm.management == 1))
+t.test(cluster_4$Animal.health, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Animal.health == 1))
+t.test(cluster_4$Environmnet, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Environmnet == 1))
+t.test(cluster_4$pasture.forage, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$pasture.forage == 1))
+t.test(cluster_4$Resource.use, conf.level = 0.99)
+nrow(subset(cluster_4,cluster_4$Resource.use == 1))
+
+t.test(cluster_5$Productivity, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Productivity == 1))
+t.test(cluster_5$Economy, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Economy == 1))
+t.test(cluster_5$Farm.management, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Farm.management == 1))
+t.test(cluster_5$Animal.health, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Animal.health == 1))
+t.test(cluster_5$Environmnet, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Environmnet == 1))
+t.test(cluster_5$pasture.forage, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$pasture.forage == 1))
+t.test(cluster_5$Resource.use, conf.level = 0.99)
+nrow(subset(cluster_5,cluster_5$Resource.use == 1))
+
+#t test for model parameters
+t.test(cluster_1$Age, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$Age == 1))
+t.test(cluster_1$Growth.weights, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$Growth.weights == 1))
+t.test(cluster_1$reproductive, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$reproductive == 1))
+t.test(cluster_1$mortality, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$mortality == 1))
+t.test(cluster_1$genetic, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$genetic == 1))
+t.test(cluster_1$carcass, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$carcass == 1))
+t.test(cluster_1$metabolic, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$metabolic == 1))
+t.test(cluster_1$behaviour, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$behaviour == 1))
+t.test(cluster_1$body.measurements, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$body.measurements == 1))
+t.test(cluster_1$herd, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$herd == 1))
+t.test(cluster_1$farm, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$farm == 1))
+t.test(cluster_1$management, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$management == 1))
+t.test(cluster_1$economic, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$economic == 1))
+t.test(cluster_1$environment, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$environment == 1))
+t.test(cluster_1$pasture.forage.1, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$pasture.forage.1 == 1))
+t.test(cluster_1$feed.supplement, conf.level = 0.99)
+nrow(subset(cluster_1, cluster_1$feed.supplement == 1))
+
+t.test(cluster_2$Age, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$Age == 1))
+t.test(cluster_2$Growth.weights, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$Growth.weights == 1))
+t.test(cluster_2$reproductive, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$reproductive == 1))
+t.test(cluster_2$mortality, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$mortality == 1))
+t.test(cluster_2$genetic, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$genetic == 1))
+t.test(cluster_2$carcass, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$carcass == 1))
+t.test(cluster_2$metabolic, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$metabolic == 1))
+t.test(cluster_2$behaviour, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$behaviour == 1))
+t.test(cluster_2$body.measurements, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$body.measurements == 1))
+t.test(cluster_2$herd, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$herd == 1))
+t.test(cluster_2$farm, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$farm == 1))
+t.test(cluster_2$management)
+nrow(subset(cluster_2, cluster_2$management == 1))
+t.test(cluster_2$economic, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$economic == 1))
+t.test(cluster_2$environment, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$environment == 1))
+t.test(cluster_2$pasture.forage.1, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$pasture.forage.1 == 1))
+t.test(cluster_2$feed.supplement, conf.level = 0.99)
+nrow(subset(cluster_2, cluster_2$feed.supplement == 1))
+
+t.test(cluster_3$Age, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$Age == 1))
+t.test(cluster_3$Growth.weights, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$Growth.weights == 1))
+t.test(cluster_3$reproductive, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$reproductive == 1))
+t.test(cluster_3$mortality, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$mortality == 1))
+t.test(cluster_3$genetic, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$genetic == 1))
+t.test(cluster_3$carcass, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$carcass == 1))
+t.test(cluster_3$metabolic, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$metabolic == 1))
+t.test(cluster_3$behaviour, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$behaviour == 1))
+t.test(cluster_3$body.measurements, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$body.measurements == 1))
+t.test(cluster_3$herd, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$herd == 1))
+t.test(cluster_3$farm, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$farm == 1))
+t.test(cluster_3$management, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$management == 1))
+t.test(cluster_3$economic, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$economic == 1))
+t.test(cluster_3$environment, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$environment == 1))
+t.test(cluster_3$pasture.forage.1, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$pasture.forage.1 == 1))
+t.test(cluster_3$feed.supplement, conf.level = 0.99)
+nrow(subset(cluster_3, cluster_3$feed.supplement == 1))
+
+t.test(cluster_4$Age, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$Age == 1))
+t.test(cluster_4$Growth.weights, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$Growth.weights == 1))
+t.test(cluster_4$reproductive, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$reproductive == 1))
+t.test(cluster_4$mortality, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$mortality == 1))
+t.test(cluster_4$genetic, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$genetic == 1))
+t.test(cluster_4$carcass, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$carcass == 1))
+t.test(cluster_4$metabolic, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$metabolic == 1))
+t.test(cluster_4$behaviour, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$behaviour == 1))
+t.test(cluster_4$body.measurements, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$body.measurements == 1))
+t.test(cluster_4$herd, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$herd == 1))
+t.test(cluster_4$farm, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$farm == 1))
+t.test(cluster_4$management, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$management == 1))
+t.test(cluster_4$economic, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$economic == 1))
+t.test(cluster_4$environment, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$environment == 1))
+t.test(cluster_4$pasture.forage.1, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$pasture.forage.1 == 1))
+t.test(cluster_4$feed.supplement, conf.level = 0.99)
+nrow(subset(cluster_4, cluster_4$feed.supplement == 1))
+
+t.test(cluster_5$Age, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$Age == 1))
+t.test(cluster_5$Growth.weights, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$Growth.weights == 1))
+t.test(cluster_5$reproductive, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$reproductive == 1))
+t.test(cluster_5$mortality, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$mortality == 1))
+t.test(cluster_5$genetic, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$genetic == 1))
+t.test(cluster_5$carcass, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$carcass == 1))
+t.test(cluster_5$metabolic, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$metabolic == 1))
+t.test(cluster_5$behaviour, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$behaviour == 1))
+t.test(cluster_5$body.measurements, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$body.measurements == 1))
+t.test(cluster_5$herd, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$herd == 1))
+t.test(cluster_5$farm, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$farm == 1))
+t.test(cluster_5$management, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$management == 1))
+t.test(cluster_5$economic, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$economic == 1))
+t.test(cluster_5$environment, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$environment == 1))
+t.test(cluster_5$pasture.forage.1, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$pasture.forage.1 == 1))
+t.test(cluster_5$feed.supplement, conf.level = 0.99)
+nrow(subset(cluster_5, cluster_5$feed.supplement == 1))
 
 
-#Provide a plot of the output - there are other plotting options that might be better
-plot(hc_biophysical, main = 'Biophysical Models Linkage')
 
-#Put papers into groups using cutree function based on a cluster height
-clust_biophysical <- cutree(hc_biophysical, h = 0.9)
-segment_biophysical <- mutate(Data_biophysical, cluster = clust_biophysical)
-count(segment_biophysical, cluster)
-
-subset(clust_biophysical, clust_biophysical == 1)
-subset(clust_biophysical, clust_biophysical == 2)
-subset(clust_biophysical, clust_biophysical == 3)
-subset(clust_biophysical, clust_biophysical == 4)
-subset(clust_biophysical, clust_biophysical == 5)
-subset(clust_biophysical, clust_biophysical == 6)
-subset(clust_biophysical, clust_biophysical == 7)
-
-
-###### cluster analysis of bioeconomic models #####
-##################################################
-
-refdata5 <- subset(refdata2, Bioeconomic == 1)
-Data_bioeconomic <- refdata5[, -c(1:5)]
-
-#Using dist core package calculate distance between rows note this is for binary data
-dist_bioeconomic <- dist(Data_bioeconomic, method = 'binary')
-
-
-#Using hclust core package this clusters rows based on the dissimilarity output
-hc_bioeconomic <- hclust(dist_bioeconomic, method = "complete")
-
-
-#Provide a plot of the output - there are other plotting options that might be better
-plot(hc_bioeconomic, main = 'Bioeconomic Models Linkage')
-
-
-#Put papers into groups using cutree function based on a cluster height
-clust_bioeconomic <- cutree(hc_bioeconomic, h = 0.9)
-segment_bioeconomic <- mutate(Data_bioeconomic, cluster = clust_bioeconomic)
-count(segment_bioeconomic, cluster)
-
-subset(clust_bioeconomic, clust_bioeconomic == 1)
-subset(clust_bioeconomic, clust_bioeconomic == 2)
-subset(clust_bioeconomic, clust_bioeconomic == 3)
-subset(clust_bioeconomic, clust_bioeconomic == 4)
-subset(clust_bioeconomic, clust_bioeconomic == 5)
-
-
-###### cluster analysis of agroecosystem models #####
-##################################################
-
-refdata6 <- subset(refdata2, Agroecosystem == 1)
-Data_agroecosystem <- refdata6[, -c(1:5)]
-
-#Using dist core package calculate distance between rows note this is for binary data
-dist_agroecosystem <- dist(Data_agroecosystem, method = 'binary')
-
-
-#Using hclust core package this clusters rows based on the dissimilarity output
-hc_agroecosystem <- hclust(dist_agroecosystem, method = "complete")
-
-
-#Provide a plot of the output - there are other plotting options that might be better
-plot(hc_agroecosystem, main = 'Agroecosystem Models Linkage')
-
-
-#Put papers into groups using cutree function based on a cluster height
-clust_agroecosystem <- cutree(hc_agroecosystem, h = 0.9)
-segment_agroecosystem <- mutate(Data_agroecosystem, cluster = clust_agroecosystem)
-count(segment_agroecosystem, cluster)
-
-subset(clust_agroecosystem, clust_agroecosystem == 1)
-subset(clust_agroecosystem, clust_agroecosystem == 2)
-
-
-###### cluster analysis of population models #####
-##################################################
-
-refdata7 <- subset(refdata2, Population == 1)
-Data_population <- refdata7[, -c(1:5)]
-
-#Using dist core package calculate distance between rows note this is for binary data
-dist_population <- dist(Data_population, method = 'binary')
-
-
-#Using hclust core package this clusters rows based on the dissimilarity output
-hc_population <- hclust(dist_population, method = "complete")
-
-
-#Provide a plot of the output - there are other plotting options that might be better
-plot(hc_population, main = 'Population Models Linkage')
-
-
-#Put papers into groups using cutree function based on a cluster height
-clust_population <- cutree(hc_population, h = 0.9)
-segment_population <- mutate(Data_population, cluster = clust_population)
-count(segment_population, cluster)
-
-subset(clust_population, clust_population == 1)
-subset(clust_population, clust_population == 2)
