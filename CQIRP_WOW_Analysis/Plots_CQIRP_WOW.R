@@ -26,15 +26,15 @@ cow_12_wts <- get_dailywts(RFID = "982 123779046958")
 
 
 # plotting WOW date vs weights
-plot(cow_1_wts$Date, cow_1_wts$Weight, type="l")
+plot(cow_1_wts$Date, cow_1_wts$Weight, type="l", xlab = "Date", ylab = "weight")
 lines(cow_2_wts$Date, cow_2_wts$Weight, type = "l", col = "red")
 lines(cow_3_wts$Date, cow_3_wts$Weight, type = "l", col = "blue")
 lines(cow_4_wts$Date, cow_4_wts$Weight, type = "l", col = "green")
 lines(cow_5_wts$Date, cow_5_wts$Weight, type = "l", col = "purple")
 lines(cow_6_wts$Date, cow_6_wts$Weight, type = "l", col = "grey")
-lines(cow_7_wts$Date, cow_7_wts$Weight, type = "l", col = "voilet")
+lines(cow_7_wts$Date, cow_7_wts$Weight, type = "l", col = "violet")
 lines(cow_8_wts$Date, cow_8_wts$Weight, type = "l", col = "yellow")
-lines(cow_9_wts$Date, cow_9_wts$Weight, type = "l", col = "indigo")
+lines(cow_9_wts$Date, cow_9_wts$Weight, type = "l", col = "#4B0082")
 lines(cow_10_wts$Date, cow_10_wts$Weight, type = "l", col = "orange")
 lines(cow_11_wts$Date, cow_11_wts$Weight, type = "l", col = "pink")
 lines(cow_12_wts$Date, cow_12_wts$Weight, type = "l", col = "#ffffcc")
@@ -64,14 +64,18 @@ lines(cow_3_wts$Date, cow_3_avg, type = "l", col = "blue")
 lines(cow_4_wts$Date, cow_4_avg, type = "l", col = "green")
 lines(cow_5_wts$Date, cow_5_avg, type = "l", col = "purple")
 lines(cow_6_wts$Date, cow_6_avg, type = "l", col = "#990000")
-lines(cow_7_wts$Date, cow_7_avg, type = "l", col = "voilet")
+lines(cow_7_wts$Date, cow_7_avg, type = "l", col = "violet")
 lines(cow_8_wts$Date, cow_8_avg, type = "l", col = "yellow")
-lines(cow_9_wts$Date, cow_9_avg, type = "l", col = "indigo")
+lines(cow_9_wts$Date, cow_9_avg, type = "l", col = "#4B0082")
 lines(cow_10_wts$Date, cow_10_avg, type = "l", col = "orange")
 lines(cow_11_wts$Date, cow_11_avg, type = "l", col = "pink")
 lines(cow_12_wts$Date, cow_12_avg, type = "l", col = "#666633")
 
+# legend setup
+legends <- c("Cow 1", "Cow 2", "Cow 3", "Cow 4", "Cow 5", "Cow 6", "Cow 7", "Cow 8", "Cow 9", "Cow 10", "Cow 11", "Cow 12")
+colors <- c("black", "red", "blue", "green", "purple", "#990000", "violet", "yellow", "#4B0082", "orange", "pink", "#666633")
 
+legend("bottomright", legend = legends, fill = colors)
 
 # 
 # plot(cow_1_wts$Date, cow_1_avg, type = "l")
