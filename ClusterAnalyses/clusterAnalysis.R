@@ -478,4 +478,3 @@ t.test(cluster_5$feed.supplement, conf.level = 0.99)
 nrow(subset(cluster_5, cluster_5$feed.supplement == 1))
 
 
-
