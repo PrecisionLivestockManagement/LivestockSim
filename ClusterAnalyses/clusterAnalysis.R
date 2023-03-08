@@ -21,7 +21,11 @@ hc_complete <- hclust(dist_survey, method = "complete")
 
 
 #Provide a plot of the output - there are other plotting options that might be better
-plot(hc_complete, main = 'Complete Linkage')
+plot(hc_complete, main = 'complete linkage')
+
+# adding borders to dendrogram
+rect.hclust(hc_complete, k = 5, border = "black")
+
 
 #Put papers into groups using cutree function based on a cluster height
 clust_complete <- cutree(hc_complete, h = 0.95)
