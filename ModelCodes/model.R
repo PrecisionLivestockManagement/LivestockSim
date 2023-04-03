@@ -1,4 +1,4 @@
-# plotting the growth curve using Bordy equation
+# plotting the growth curve using Bordy equation ####
 library(ggplot2)
 
 age <- c(0, 100, 200, 300, 400, 500, 600) # in days
@@ -70,4 +70,28 @@ ggplot(data, aes(x = age, y = weight)) +
 # ggplot(all_data, aes(x = all_age, y = weights)) +
 #   geom_point()
 # 
-# 
+
+
+# using linear regression model ####
+library(DMMongoDB)
+
+all_wts_CQIRP <- get_dailywts(property = "CQIRP")
+
+animal_data <- split(all_wts_CQIRP, all_wts_CQIRP$RFID)
+
+model_list <- list()
+
+for (i in 1:length(animal_data)) {
+  animal <- names(animal_data)[i]  # get the name of the animal
+  animal_df <- animal_data[[i]]   # get the data for the animal
+  
+  model <- lm(Weight ~ Date, data = animal_df)  # fit the linear regression model
+  model_list[[animal]] <- model   # store the model results in the list
+}
+
+
+
+
+
+
+
