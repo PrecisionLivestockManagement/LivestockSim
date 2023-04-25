@@ -29,9 +29,12 @@ ggplot(CQIRP_dailywts, aes(x = Date, y = Weight, color = RFID)) +
   theme(legend.position = "none") +
   labs(title = "daily weight records of each animal")
 
+CQIRP_dailywts$DateTime <- CQIRP_dailywts$Date
+CQIRP_dailywts$Date <- as.Date(CQIRP_dailywts$Date)
+CQIRP_weights_all <- merge(CQIRP_dailywts, CQIRP_staticwts, by = c("RFID", "Date"), all.x = TRUE)
 
-
-
+ggplot(CQIRP_weights_all, aes(x = Weight.x, y = Weight.y)) +
+  geom_point() 
 
 
 ### CQIRP animal data #####
@@ -116,27 +119,23 @@ ggplot(wow_selected_rm0, aes(x = Date, y = Weight, color = RFID)) +
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-### CQIRP_animals_current ####
+### CQIRP_animals_current (Accuracy and repeatability analysis) ####
 CQIRP_animals_current <- get_cattle(property = "CQIRP")
 
 # getting static wts
 staticwts_ <- get_staticwts(RFID = CQIRP_animals_current$RFID)
-dailywts_ <- get_dailywts(RFID = CQIRP_animals_current)
+summary(staticwts_$Weight)
+sd(staticwts_$Weight)
+
+dailywts_ <- get_dailywts(RFID = CQIRP_animals_current, start = "2022-04-29")
+dailywts_ <- dailywts_[dailywts_$Date <= "2022-05-20", ]
+summary(dailywts_$Weight)
+sd(dailywts_$Weight)
 
 # removing front foot weights, and weights below 40kg and above 600 kg
 dailywts_ <- dailywts_[dailywts_$Location != "29.FrontFoot" & dailywts_$Weight > 40 & dailywts_$Weight < 600 , ]
-
+summary(dailywts_$Weight)
+sd(dailywts_$Weight)
 
 # averaging the daily wts for each day
 dailywts_$DateTime <- dailywts_$Date
@@ -145,10 +144,14 @@ dailywts_$Date <- as.Date(dailywts_$Date)
 avg_dailywts_ <- dailywts_ %>%
   group_by(RFID, Date) %>%
   summarise(avg_dailywts = mean(Weight))
+summary(avg_dailywts_$avg_dailywts)
+sd(avg_dailywts_$avg_dailywts)
 
 
 ggplot(staticwts_, aes(x = Date, y = Weight, color = RFID))+
   geom_line()
+
+
 
 ## getting static weight for each day using linear-interpoloation
 library(lubridate)
@@ -180,6 +183,7 @@ ggplot(est_staticwts_, aes(x = Date, y = est_staticwts, color = RFID)) +
 # merging daily wts and static weights data and plotting
 all_weights_ <- merge(avg_dailywts_, est_staticwts_, by = c("RFID", "Date"), all.x = FALSE)
 
+
 ggplot(all_weights_, aes(x = Date, color = RFID)) +
   geom_line(aes(y = est_staticwts)) +
   geom_point(aes(y = avg_dailywts))
@@ -197,7 +201,13 @@ all_weights_$diff_percent <- abs(all_weights_$diff)/all_weights_$est_staticwts *
 ggplot(all_weights_, aes(diff)) +
   geom_histogram(color = "black") +
   scale_x_continuous(breaks = seq(-100, 150, 20)) +
-  labs(title = "Difference between daily wts and static weights", x = "Difference from static weight(kg)", y = "Number of weights")
+  labs(title = "Difference of daily weight form static weights", x = "average daily weight minus static weight(kg)", y = "Number of weights")
+
+ggplot(all_weights_, aes(x = est_staticwts, y = avg_dailywts)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Static wts vs daily wts for CQIRP animals")
 
 
 # calculating concordance correlation coefficient to assess degree of agreement between static weights and daily wts
@@ -209,15 +219,33 @@ ccc_value <- ccc_result[["rho.c"]]
 
 
 
+cor(all_weights_$avg_dailywts, all_weights_$est_staticwts, method = "spearman")
 
 
 
 
+############### Tremere ###############
+Tremere_animals_current <- get_cattle(property = "Tremere")
+Tremere_staticwts_ <- get_staticwts(RFID = Tremere_animals_current$RFID)
+Tremere_dailywts_ <- get_dailywts(RFID = Tremere_animals_current$RFID)
+
+ggplot(Tremere_staticwts_, aes(x = Date, y = Weight, color = RFID)) +
+  geom_line() +
+  guides(color = "none")
+
+ggplot(Tremere_dailywts_, aes(x = Date, y = Weight, color = RFID)) +
+  geom_line() +
+  guides(color = "none")
 
 
+Tremere_dailywts_$DateTime <- Tremere_dailywts_$Date
+Tremere_dailywts_$Date <- as.Date(Tremere_dailywts_$Date)
 
+Tremere_avg_dailywts_ <- Tremere_dailywts_ %>%
+  group_by(RFID, Date) %>%
+  summarise(avg_dailywts = mean(Weight))
 
-
+Tremere_allwts_ <- merge(Tremere_avg_dailywts_, Tremere_staticwts_, by = c("RFID", "Date"))
 
 
 
