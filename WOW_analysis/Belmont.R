@@ -3,138 +3,6 @@ library(tidyverse)
 library(zoo)
 library(scales)
 
-## previous analysis #######
-
-Bel_animals_all <- get_cattle(RFID = Bel_dailywts_all$RFID)
-
-Bel_animals_growing <- subset(Bel_animals_all[Bel_animals_all$category == "growing", ])
-
-Bel_dailywts_growing <- get_dailywts(RFID = Bel_animals_growing)
-Bel_stwts_growing <- get_staticwts(RFID = Bel_animals_growing)
-
-
-####### outlier removal #
-#Removing zero weights
-dailywts_growing <- Bel_dailywts_growing[Bel_dailywts_growing$Weight != 0, ]
-stwts_growing <- Bel_stwts_growing[Bel_stwts_growing$Weight != 0, ]
-
-# removing incorrect date
-stwts_growing <- stwts_growing[stwts_growing$Date != "0014-06-20 00:12:08", ]
-
-#### plotting 
-ggplot(stwts_growing, aes(x = Date, y = Weight)) +
-  geom_point()
-
-ggplot(dailywts_growing, aes(x = Date, y = Weight)) +
-  geom_point()
-
-
-
-ggplot(Belmont_daily_wts, aes(x = Date, y = Weight)) +
-  geom_point()
-
-ggplot(Belmont_static_wts, aes(x = as.Date(Date), y = Weight)) +
-  geom_point()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Belmont_daily_wts <- get_dailywts(property = "Belmont")
-Belmont_static_wts <- get_staticwts(property = "Belmont")
-Belmont_static_wts[,2] <- gsub("0014-06-20 00:12:08", "2014-06-20 00:12:08", Belmont_static_wts[,2])
-
-ggplot(Belmont_daily_wts, aes(x = Date, y = Weight, color = RFID)) +
-  geom_point() +
-  guides(color = "none")
-
-ggplot(Belmont_static_wts, aes(x = Date, y = Weight, color = RFID)) +
-  geom_point() +
-  guides(color = "none")
-
-
-############ getting all cattle at Belmont 
-Belmont_animals_current <- get_cattle(property = "Belmont")
-Belmont_dailywts_raw <- get_dailywts(property = "Belmont")
-Belmont_staticwts_raw <- get_staticwts(property = "Belmont")
-Belmont_staticwts_raw <- Belmont_staticwts_raw[Belmont_staticwts_raw$Date != "0014-06-20 00:12:08", ]
-
-Belmont_RFID_All <- unique(Belmont_dailywts_raw$RFID)
-
-Belmont_animals_all <- get_cattle(RFID = Belmont_RFID_All)
-
-ggplot(Belmont_staticwts_raw, aes(x = Date, y = Weight, color = RFID)) +
-  geom_point() +
-  guides(color = "none")
-
-### Raw data analysis
-# averaging the daily wts for each day
-Belmont_dailywts_raw$DateTime <- Belmont_dailywts_raw$Date
-Belmont_dailywts_raw$Date <- as.Date(Belmont_dailywts_raw$Date)
-
-Belmont_avg_dailywts_raw <- Belmont_dailywts_raw %>%
-  group_by(RFID, Date) %>%
-  summarise(avg_dailywts = mean(Weight))
-
-# merging daily wts and static weights data and plotting
-Belmont_allwts_raw <- merge(Belmont_avg_dailywts_raw, Belmont_staticwts_raw, by = c("RFID", "Date"), all.x = FALSE)
-Belmont_allwts_out <- Belmont_allwts_raw[Belmont_allwts_raw$avg_dailywts > 50 & Belmont_allwts_raw$avg_dailywts < 700, ]
-
-
-ggplot(Belmont_allwts_raw, aes(x = Weight, y = avg_dailywts)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Raw data: Static wts vs daily wts for Belmont animals")
-
-ggplot(Belmont_allwts_out, aes(x = Weight, y = avg_dailywts)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Outlier removed data: Static wts vs daily wts for Belmont animals")
-
-# calculating concordance correlation coefficient to assess degree of agreement between static weights and daily wts
-library(DescTools)
-
-Belmont_ccc_raw <-CCC(Belmont_allwts_raw$avg_dailywts, Belmont_allwts_raw$Weight)
-Belmont_ccc_raw[["rho.c"]]
-
-## Outlier removal 
-Belmont_avg_dailywts_raw <- Belmont_dailywts_raw %>%
-  group_by(RFID, Date) %>%
-  summarise(avg_dailywts = mean(Weight))
-
-# merging daily wts and static weights data and plotting
-Belmont_allwts_raw <- merge(Belmont_avg_dailywts_raw, Belmont_staticwts_raw, by = c("RFID", "Date"), all.x = FALSE)
-
-ggplot(Belmont_allwts_raw, aes(x = Weight, y = avg_dailywts)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Raw data: Static wts vs daily wts for Belmont animals")
-
-
-
-
-
-
-
-
-
-
-
 ############################## Accuracy measurement ################################
 
 Belmont_animals <- get_cattle(property = "Belmont")
@@ -151,7 +19,7 @@ ggplot(Belmont_staticwts_, aes(x = Date, y = Weight, color = RFID)) +
 Belmont_staticwts_ <- Belmont_staticwts_[Belmont_staticwts_$Date >= "2023-02-09" & Belmont_staticwts_$Date <= "2023-03-31", ]
 
 ggplot(Belmont_staticwts, aes(x = Date, y = Weight, color = RFID)) +
-  geom_line() +
+  geom_point() +
   guides(color = "none")
 
 # selecting animals with more than 1 static weight measures
