@@ -197,7 +197,48 @@ ggplot(all_staticwts, mapping = aes(Date)) +
 
 ggplot(all_dailywts, mapping = aes(Date)) +
   geom_histogram() +
-  facet_wrap(~ stationname) +
-  labs(title = "No. of daily weights over time")
+  facet_wrap(~ stationname)
+
+
+
+
+
+
+
+
+
+
+#####################################################
+
+Gyranda_dailywts_ <- get_dailywts(property = "Gyranda")
+Gyranda_animals <- get_cattle(RFID = unique(Gyranda_dailywts_$RFID))
+Gyranda_dailywts_0 <- Gyranda_dailywts_[Gyranda_dailywts_$Weight > 0, ]
+
+
+
+ggplot(Gyranda_dailywts_0, aes(x = Date, y = Weight, color = RFID)) +
+  geom_line()+
+  guides(color = "none")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

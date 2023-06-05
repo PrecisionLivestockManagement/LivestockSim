@@ -6,9 +6,27 @@ library(scales)
 ############################## Accuracy measurement ################################
 
 Belmont_animals <- get_cattle(property = "Belmont")
+Belmont_dailywts_ <- get_dailywts(RFID = Belmont_animals$RFID)
+write.csv(Belmont_dailywts_, file = "Data/Belmont_dailywts.csv")
 
 
-## gauthering static weights
+
+
+Belmont_weeklywts_ <- get_weeklywts(RFID = Belmont_dailywts_$RFID)
+Belmont_staticwts_ <- get_staticwts(RFID = Belmont_animals$RFID)
+write.csv(Belmont_staticwts_, file = "Data/Belmont_staticwts.csv")
+
+Belmont_animals_all <- get_cattle(RFID = Belmont_dailywts_$RFID)
+
+
+ggplot(Belmont_dailywts_, aes(x = Date, y = Weight, color = RFID)) +
+  geom_line()+
+  guides(color = "none")
+  
+
+
+
+##### gauthering static weights #####
 Belmont_staticwts_ <- get_staticwts(RFID = Belmont_animals$RFID)
 
 ggplot(Belmont_staticwts_, aes(x = Date, y = Weight, color = RFID)) +
@@ -69,8 +87,8 @@ ggplot(est_staticwts, aes(x = Date, y = est_staticwts, color = RFID)) +
 
 
 
-## gauthering daily weights 
-Belmont_dailywts_ <- get_dailywts(RFID = df_stwts_counts$RFID)
+## gauthering daily weights ######
+Belmont_dailywts_ <- get_dailywts(property = "Belmont")
 
 # selecting date range 2023-02-09 to 2023-03-31
 dailywts_raw <- Belmont_dailywts_[Belmont_dailywts_$Date >= "2023-02-09" & Belmont_dailywts_$Date <= "2023-03-31", ]
@@ -129,7 +147,9 @@ ggplot(allwts_out, aes(x = est_staticwts, y = avg_dailywts)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1) +
   geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Static wts vs daily wts for Belmont animals")
+  scale_x_continuous(limits = c(200, 450), breaks = seq(200, 450, 50)) +
+  scale_y_continuous(limits = c(200, 450), breaks = seq(200, 450, 50)) +
+  labs(x = "Estimated static weights (kg)", y = "Average daily weights (kg)")
 
 # differences between static weights and wow
 allwts_out$diff <- c(allwts_out$avg_dailywts - allwts_out$est_staticwts)
@@ -166,6 +186,14 @@ ggplot(allwts_smooth, aes(x = est_staticwts, y = smooth_dailywts)) +
   geom_abline(intercept = 0, slope = 1) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Static wts vs daily wts for Belmont animals")
+
+ggplot(allwts_smooth, aes(x = est_staticwts, y = smooth_dailywts)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_x_continuous(limits = c(200, 450), breaks = seq(200, 450, 50)) +
+  scale_y_continuous(limits = c(200, 450), breaks = seq(200, 450, 50)) +
+  labs(x = "Estimated static weights (kg)", y = "Average daily weights (kg)")
 
 ccc_result <-CCC(allwts_smooth$smooth_dailywts, allwts_smooth$est_staticwts)
 ccc_value <- ccc_result[["rho.c"]]

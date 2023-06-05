@@ -17,7 +17,7 @@ write.csv(Belmont_static_wts, file = "Data/All_properties/Belmont_staticwts.csv"
 Belmont_daily_wts <- get_dailywts(property = "Belmont")
 Belmont_dailywts <- Belmont_daily_wts[Belmont_daily_wts$Weight > 0, ]
 Belmont_dailywts$stationname = "Belmont"
-write.csv(Belmont_daily_wts, file = "Data/All_properties/Belmont_dailywts.csv")
+write.csv(Belmont_daily_wts, file = "Data/Belmont_dailywts.csv")
 
 
 Gyranda_static_wts <- get_staticwts(property = "Gyranda")
