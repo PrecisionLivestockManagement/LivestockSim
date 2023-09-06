@@ -2,247 +2,114 @@ library(DMMongoDB)
 library(tidyverse)
 library(zoo)
 library(scales)
-
-############################## Accuracy measurement ################################
-
-Belmont_animals <- get_cattle(property = "Belmont")
-Belmont_dailywts_ <- get_dailywts(RFID = Belmont_animals$RFID)
-write.csv(Belmont_dailywts_, file = "Data/Belmont_dailywts.csv")
-
-
-
-
-Belmont_weeklywts_ <- get_weeklywts(RFID = Belmont_dailywts_$RFID)
-Belmont_staticwts_ <- get_staticwts(RFID = Belmont_animals$RFID)
-write.csv(Belmont_staticwts_, file = "Data/Belmont_staticwts.csv")
-
-Belmont_animals_all <- get_cattle(RFID = Belmont_dailywts_$RFID)
-
-
-ggplot(Belmont_dailywts_, aes(x = Date, y = Weight, color = RFID)) +
-  geom_line()+
-  guides(color = "none")
-  
-
-
-
-##### gauthering static weights #####
-Belmont_staticwts_ <- get_staticwts(RFID = Belmont_animals$RFID)
-
-ggplot(Belmont_staticwts_, aes(x = Date, y = Weight, color = RFID)) +
-  geom_point() +
-  guides(color = "none")
-
-# selecting date range from 2023-02-09 to 2023-03-31 (Date with most static weights for each animal)
-Belmont_staticwts_ <- Belmont_staticwts_[Belmont_staticwts_$Date >= "2023-02-09" & Belmont_staticwts_$Date <= "2023-03-31", ]
-
-ggplot(Belmont_staticwts, aes(x = Date, y = Weight, color = RFID)) +
-  geom_point() +
-  guides(color = "none")
-
-# selecting animals with more than 1 static weight measures
-stwts_counts <- c()
-
-for (i in Belmont_staticwts_$RFID) {
-  stwts_counts[i] <- sum(Belmont_staticwts_$RFID == i)
-}
-
-df_stwts_counts_ <- data.frame(RFID = c(unique(Belmont_staticwts_$RFID)),
-                       num_stwts = stwts_counts)
-
-df_stwts_counts <- df_stwts_counts_[df_stwts_counts_$num_stwts > 1, ]
-
-# getting static weights for animals with more than one static weight records
-Belmont_staticwts <- get_staticwts(RFID = df_stwts_counts$RFID)
-Belmont_staticwts <- Belmont_staticwts[Belmont_staticwts$Weight > 0, ]
-
-# linear interpolation to get everyday static weights for all animals
-library(lubridate)
-
-all_dates <- seq(min(Belmont_staticwts$Date), max(Belmont_staticwts$Date), by = "day")
-new_staticwts <- expand.grid(RFID = unique(Belmont_staticwts$RFID), Date = all_dates)
-
-merged_staticwts <- merge(new_staticwts, Belmont_staticwts, by = c("RFID", "Date"), all.x = TRUE, all.y = TRUE)
-
-staticwts_splited <- split(merged_staticwts, f = merged_staticwts$RFID)
-
-
-# estimating static weights for each animal each day
-est_staticwts_list <- list()
-
-for (i in seq_along(staticwts_splited)) {
-  est_staticwts_list[[i]] <- with(staticwts_splited[[i]], approx(x = Date, y = Weight, xout = all_dates)$y)
-}
-
-est_staticwts <- cbind(merged_staticwts, est_staticwts = unlist(est_staticwts_list))
-
-#removing n/a rows
-est_staticwts <- est_staticwts[!is.na(est_staticwts$est_staticwts), ]
-
-ggplot(est_staticwts, aes(x = Date, y = est_staticwts, color = RFID)) +
-  geom_point() +
-  guides(color = "none")
-
-
-
-
-
-## gauthering daily weights ######
-Belmont_dailywts_ <- get_dailywts(property = "Belmont")
-
-# selecting date range 2023-02-09 to 2023-03-31
-dailywts_raw <- Belmont_dailywts_[Belmont_dailywts_$Date >= "2023-02-09" & Belmont_dailywts_$Date <= "2023-03-31", ]
-
-
-# averaging the daily weights for each day
-dailywts_raw$DateTime <- dailywts_raw$Date
-dailywts_raw$Date <- as.Date(dailywts_raw$Date)
-
-avg_dailywts_raw <- dailywts_raw %>%
-  group_by(RFID, Date) %>%
-  summarise(avg_dailywts = mean(Weight))
-
-
-
-## Raw data analysis
-allwts_raw <- merge(avg_dailywts_raw, est_staticwts, by = c("RFID", "Date"))
-
-
-ggplot(allwts_raw, aes(x = est_staticwts, y = avg_dailywts)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Static wts vs daily wts for Belmont animals")
-
-# differences between static weights and wow
-allwts_raw$diff <- c(allwts_raw$avg_dailywts - allwts_raw$est_staticwts)
-allwts_raw$diff_percent <- abs(allwts_raw$diff)/allwts_raw$est_staticwts * 100
-
-ggplot(allwts_raw, aes(diff)) +
-  geom_histogram(color = "black") +
-  scale_y_continuous(labels = function(x) percent(x / 2307)) +
-  labs(title = "Difference of daily weight form static weights", x = "average daily weight minus static weight(kg)", y = "Percentage of weights")
-
-# calculating concordance correlation coefficient to assess degree of agreement between static weights and daily wts
-library(DescTools)
-
-ccc_result <-CCC(allwts_raw$avg_dailywts, allwts_raw$est_staticwts)
-ccc_value <- ccc_result[["rho.c"]]
-
-
-## Outlier removed data analysis
-dailywts_out <- dailywts_raw[dailywts_raw$Weight > 40 & dailywts_raw$Weight < 600, ]
-
-avg_dailywts_out <- dailywts_out %>%
-  group_by(RFID, Date) %>%
-  summarise(avg_dailywts = mean(Weight))
-
-
-
-
-allwts_out <- merge(avg_dailywts_out, est_staticwts, by = c("RFID", "Date"))
-
-
-ggplot(allwts_out, aes(x = est_staticwts, y = avg_dailywts)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  scale_x_continuous(limits = c(200, 450), breaks = seq(200, 450, 50)) +
-  scale_y_continuous(limits = c(200, 450), breaks = seq(200, 450, 50)) +
-  labs(x = "Estimated static weights (kg)", y = "Average daily weights (kg)")
-
-# differences between static weights and wow
-allwts_out$diff <- c(allwts_out$avg_dailywts - allwts_out$est_staticwts)
-allwts_out$diff_percent <- abs(allwts_out$diff)/allwts_out$est_staticwts * 100
-
-ggplot(allwts_out, aes(diff)) +
-  geom_histogram(color = "black") +
-  scale_y_continuous(labels = function(x) percent(x / 2307)) +
-  labs(title = "Difference of daily weight form static weights", x = "average daily weight minus static weight(kg)", y = "Percentage of weights")
-
-# calculating concordance correlation coefficient to assess degree of agreement between static weights and daily wts
-library(DescTools)
-
-ccc_result <-CCC(allwts_out$avg_dailywts, allwts_out$est_staticwts)
-ccc_value <- ccc_result[["rho.c"]]
-
-
-## smoothed data analysis (using 5 days rolling average)
-dailywts_splitted <- split(allwts_out, f = allwts_out$RFID)
-
-smooth_dailywts_list <- list()
-
-for (i in seq_along(dailywts_splitted)) {
-  smooth_dailywts_list[[i]] <- rollmean(dailywts_splitted[[i]]$avg_dailywts, k = 5, align = 'center', na.pad = TRUE)
-}
-
-allwts_smooth <- cbind(allwts_out, smooth_dailywts = unlist(smooth_dailywts_list))
-
-# removing n/a values as a result of rolling averages of 5 days
-allwts_smooth <- allwts_smooth[!is.na(allwts_smooth$smooth_dailywts), ]
-
-ggplot(allwts_smooth, aes(x = est_staticwts, y = smooth_dailywts)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Static wts vs daily wts for Belmont animals")
-
-ggplot(allwts_smooth, aes(x = est_staticwts, y = smooth_dailywts)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_smooth(method = "lm", se = FALSE) +
-  scale_x_continuous(limits = c(200, 450), breaks = seq(200, 450, 50)) +
-  scale_y_continuous(limits = c(200, 450), breaks = seq(200, 450, 50)) +
-  labs(x = "Estimated static weights (kg)", y = "Average daily weights (kg)")
-
-ccc_result <-CCC(allwts_smooth$smooth_dailywts, allwts_smooth$est_staticwts)
-ccc_value <- ccc_result[["rho.c"]]
-
-allwts_smooth$diff <- c(allwts_smooth$smooth_dailywts - allwts_smooth$est_staticwts)
-allwts_smooth$diff_percent <- abs(allwts_smooth$diff)/allwts_smooth$est_staticwts * 100
-
-ggplot(allwts_smooth, aes(diff)) +
-  geom_histogram(color = "black") +
-  scale_y_continuous(labels = function(x) percent(x / 2307)) +
-  labs(title = "Difference of daily weight form static weights", x = "average daily weight minus static weight(kg)", y = "Percentage of weights")
-
-
-
-############################ Repeatability measurement ###############################
 library(lme4)
+library(lubridate)
+library(DescTools)
+library(gridExtra)
 
-## raw data
-model_raw <- lmer(Weight ~ 1 + (1 | RFID), data = dailywts_raw)
-
-# Calculate the estimated variance components using the REML model
-vc_raw <- VarCorr(model_raw)
-VarA_raw <- vc_raw[["RFID"]][[1]]  # variance component between animals
-VarR_raw <- attr(vc_raw, "sc")^2  # residual or random variance
-
-# Calculate the repeatability
-repeatability_raw <- VarA_raw / (VarR_raw + VarR_raw)
-repeatability_raw
+### importing walk-over weights and static weights data 
+dailywts_alltime <- read.csv(file = "Data/Belmont_dailywts_alltime.csv")
+staticwts_alltime <- read.csv(file = "Data/Belmont_staticwts_alltime.csv")
 
 
-## outlier removed data
-model_out <- lmer(Weight ~ 1 + (1 | RFID), data = dailywts_out)
+# changing some column names and removing zero weights
+dailywts_alltime$DateTime <- dailywts_alltime$Date
+dailywts_alltime$Date <- as.Date(dailywts_alltime$Date, format = "%d-%m-%y")
+colnames(dailywts_alltime)[colnames(dailywts_alltime) == "Weight"] <- "dailywt"
+dailywts_raw <- dailywts_alltime[dailywts_alltime$dailywt > 0, ]
 
-# Calculate the estimated variance components using the REML model
-vc_out <- VarCorr(model_out)
-VarA_out <- vc_out[["RFID"]][[1]]  # variance component between animals
-VarR_out <- attr(vc_out, "sc")^2  # residual or random variance
+staticwts_alltime$Date <- as.Date(staticwts_alltime$Date)
+staticwts_alltime <- staticwts_alltime[staticwts_alltime$Date != "0014-06-20", ]
+colnames(staticwts_alltime)[colnames(staticwts_alltime) == "Weight"] <- "staticwt"
+staticwts <- staticwts_alltime[staticwts_alltime$staticwt > 0, ]
 
-# Calculate the repeatability
-repeatability_out <- VarA_out / (VarR_out + VarR_out)
-repeatability_out
+# dividing animals into seperate herds based on timeline of wow collection
+# herd1 (2017-05-01 to 2020-01-30; days of wow: , ) ####
+dailywts_herd1 <- dailywts_raw[dailywts_raw$Date >= "2017-05-15" & dailywts_raw$Date <= "2020-01-30", ]
 
+staticwts_herd1 <- staticwts %>%
+  filter(RFID %in% unique(dailywts_herd1$RFID))
 
+# selecting dailywts for animals of static weight (reference weight) available (891 animals)
+dailywts_herd1_raw <- dailywts_herd1 %>%
+  filter(RFID %in% unique(staticwts_herd1$RFID))
 
+# selecting animals with at least 2 wow records
+dailywts_herd1_raw <- dailywts_herd1_raw %>%
+  group_by(RFID) %>%
+  filter(n_distinct(Date) >= 2)
 
+# averaging the static weights for each RFID to get the average reference weight
+staticavg_herd1 <- staticwts_herd1 %>%
+  group_by(RFID) %>%
+  summarise(avg_staticwt = round(mean(staticwt), 2))
 
+# dailywts_raw analysis
+dailyavg_herd1_raw <- dailywts_herd1_raw %>%
+  group_by(RFID, Date) %>%
+  summarise(avg_dailywt = round(mean(dailywt), 2))
+
+allwts_herd1_raw <- merge(dailyavg_herd1_raw, staticwts_herd1, by = c("RFID", "Date"))
+
+ccc_herd1_raw <- CCC(allwts_herd1_raw$avg_dailywt, allwts_herd1_raw$staticwt)$rho.c
+
+# outlier removal from WOW data
+dailywts_herd1_out <- data.frame(RFID = character(), Date = character(), dailywt = numeric(), stringsAsFactors = FALSE)
+
+for (i in unique(dailywts_herd1_raw$RFID)) {
+  animal_data <- subset(dailywts_herd1_raw, RFID == i)
+  
+  ref_data <- staticavg_herd1 %>%
+    filter(RFID == i)
+    
+  lower_limit <- ref_data$avg_staticwt /2
+  upper_limit <- ref_data$avg_staticwt * 1.5
+  
+  filtered_animal_data <- subset(animal_data, dailywt >= lower_limit & dailywt <= upper_limit)
+  dailywts_herd1_out <- rbind(dailywts_herd1_out, filtered_animal_data)
+}
+
+# averaging of WOWs if more than one weight recorded in a single day
+dailyavg_herd1_out <- dailywts_herd1_out %>%
+  group_by(RFID, Date) %>%
+  summarise(avg_dailywt = round(mean(dailywt), 2))
+
+allwts_herd1_out <- merge(dailyavg_herd1_out, staticwts_herd1, by = c("RFID", "Date"))
+
+ccc_herd1_out <- CCC(allwts_herd1_out$avg_dailywt, allwts_herd1_out$staticwt)$rho.c
+
+# linear interpolation to get the wows for missing days
+dates_herd1 <- seq(as.Date("2017-05-15"), as.Date("2020-01-30"), by = "day")
+dailywts_herd1_new <- expand.grid(RFID = unique(dailyavg_herd1_out$RFID), Date = dates_herd1)
+
+dailywts_herd1_merged <- merge(dailywts_herd1_new, dailyavg_herd1_out, by = c("RFID", "Date"), all.x = TRUE)
+
+dailywts_herd1_splited <- split(dailywts_herd1_merged, f = dailywts_herd1_merged$RFID)
+
+dailywts_herd1_list <- list()
+
+for (i in seq_along(dailywts_herd1_splited)) {
+  dailywts_herd1_list[[i]] <- with(dailywts_herd1_splited[[i]], na.approx(x = Date, y = avg_dailywt, xout = dates_herd1)$y)
+}
+
+dailywts_herd1_est <- cbind(dailywts_herd1_merged, est_dailywt = unlist(dailywts_herd1_list))
+dailywts_herd1_est$est_dailywt <- round(dailywts_herd1_est$est_dailywt, 2)
+
+# smoothing dailywts using 13 days rolling average
+dailywts_herd1_smooth <- data.frame(RFID = character(), Date = character(), smooth_dailywt = numeric(), stringsAsFactors = FALSE)
+
+for (i in unique(dailywts_herd1_est$RFID)) {
+  animal_data <- subset(dailywts_herd1_est, RFID == i)
+  roll_avg <- rollmean(animal_data$est_dailywt, k = 13, align = 'center', na.pad = TRUE)
+  merged_data <- cbind(animal_data, roll_avg)
+  
+  dailywts_herd1_smooth <- rbind(dailywts_herd1_smooth, merged_data)
+}
+
+dailywts_herd1_smooth$roll_avg <- round(dailywts_herd1_smooth$roll_avg, 2)
   
 
-
+ggplot(daily)
 
 
 

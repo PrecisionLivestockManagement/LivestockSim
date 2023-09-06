@@ -43,7 +43,7 @@ avg_dailywts <- dailywts_out %>%
   summarise(avg_dailywt = round(mean(dailywt), 2))
 
 
-# model development
+# model development ####
 # selecting weight records between 2023-02-09 to 2023-03-31, 
 # with static weight recorded at least at the start and end of this period
 staticwts_model <- staticwts_raw[staticwts_raw$Date >= "2023-02-09" & staticwts_raw$Date <= "2023-03-31", ]
@@ -127,6 +127,9 @@ for (i in unique(avg_dailywts_selected$RFID)) {
     temp_df[col_name] <- unlist(rolling_averages[[j-1]])
   }
   
+  numeric_cols <- sapply(temp_df, is.numeric)
+  temp_df[numeric_cols] <- round(temp_df[numeric_cols], 2)
+  
   rollavg_list[[i]] <- temp_df
 }
 
@@ -144,31 +147,76 @@ library(DescTools)
 
 simulated_data <- allwts_selected[, !(names(allwts_selected) %in% c("RFID", "Date", "avg_dailywt", "staticwt", "est_staticwts"))]
 
-values <- data.frame(window = numeric(), ccc = numeric(), p_value = numeric())
+LW_CCC_values <- data.frame(window = numeric(), ccc = numeric(), p_value = numeric())
 
 for (col_name in names(simulated_data)) {
   ccc_result <- CCC(simulated_data[[col_name]], allwts_selected$est_staticwts, ci = "z-transform", conf.level = 0.95, na.rm = TRUE)
   p_value <- t.test(simulated_data[[col_name]], allwts_selected$est_staticwts)$p.value
   
-  values <- rbind(values, data.frame(window = col_name, ccc = ccc_result$rho.c, p_value = p_value))
+  LW_CCC_values <- rbind(LW_CCC_values, data.frame(window = col_name, ccc = ccc_result$rho.c, p_value = p_value))
 }
 
-plot_values <- data.frame(window_size = 1:100, ccc = values$ccc.est, p_value = values$p_value)
+LW_CCC_values <- data.frame(window_size = 1:100, ccc = LW_CCC_values$ccc.est, p_value = LW_CCC_values$p_value)
 
-ggplot(plot_values, aes(x = window_size, y = ccc)) +
-  geom_line() +
+ggplot(LW_CCC_values, aes(x = window_size, y = ccc)) +
+  geom_point() +
   scale_x_continuous(breaks = seq(0, 100, 5), labels = seq(0, 100, 5))
 
 
 
 
-
-
-
-
-
-
-
+# # simulation for LWC
+# # calculating daily LWC using static weight data
+# LWC_static <- staticwts_selected %>%
+#   group_by(RFID) %>%
+#   mutate(LWC_static = ifelse(row_number() == 1, NA, c(est_staticwts[1], diff(est_staticwts)))) %>%
+#   ungroup()
+# 
+# # calculating daily LWC using the simulated data
+# LWC_simulated_list <- list()
+# 
+# 
+# for (i in unique(rollavg_selected$RFID)) {
+#   subset_data <- subset(rollavg_selected, RFID == i)
+#   
+#   weight_changes <- lapply(1:100, function(k) {
+#     avg_col <- paste0("avg_", k, "DW")
+#     c(NA, diff(subset_data[, avg_col]))
+#   })
+#   
+#   daily_changes <- data.frame(
+#     RFID = subset_data$RFID,
+#     Date = subset_data$Date,
+#     weight_changes
+#   )
+#   
+#   colnames(daily_changes)[-c(1, 2)] <- paste0("LWC_", 1:10, "DW")
+#   
+#   LWC_simulated_list[[i]] <- daily_changes
+# }
+# 
+# LWC_simulated <- do.call(rbind, LWC_simulated_list)
+# 
+# 
+# # calculating concordance correlation coefficient for all LWC simulated datasets
+# library(DescTools)
+# 
+# LWC_sim <- LWC_simulated[, !(names(LWC_simulated) %in% c("RFID", "Date", "avg_dailywt", "staticwt", "est_staticwts"))]
+# 
+# LWC_CCC_values <- data.frame(window = numeric(), ccc = numeric(), p_value = numeric())
+# 
+# for (col_name in names(LWC_sim)) {
+#   ccc_result <- CCC(LWC_sim[[col_name]], LWC_static$LWC_static, ci = "z-transform", conf.level = 0.95, na.rm = TRUE)
+#   p_value <- t.test(LWC_sim[[col_name]], LWC_static$LWC_static)$p.value
+#   
+#   LWC_CCC_values <- rbind(values, data.frame(window = col_name, ccc = ccc_result$rho.c, p_value = p_value))
+# }
+# 
+# LWC_CCC_values <- data.frame(window = 1:100, ccc = values$ccc.est, p_value = values$p_value)
+# 
+# ggplot(LWC_CCC_values, aes(x = window, y = ccc)) +
+#   geom_point() +
+#   scale_x_continuous(breaks = seq(0, 100, 5), labels = seq(0, 100, 5))
 
 
 
