@@ -280,13 +280,18 @@ complete_data <- merge(dailywts_staticwts_data, weather_data_monthly, by = "Date
 
 complete_data$age <- as.numeric(as.Date(complete_data$Date) - as.Date(complete_data$birthDate) + 1)
 
-complete_data <- subset(complete_data, age >= 1 & age <= 900)
+complete_data <- subset(complete_data, age >= 30 & age <= 900)
 
-complete_data <- complete_data %>%
-  mutate(smooth_dailywt = ifelse(age == 1, birthWeight, smooth_dailywt))
+# 
+# ggplot(complete_data, aes(x= age, y = dailywt)) +
+#   geom_point()
 
-complete_data <- complete_data %>%
-  mutate(staticwt = ifelse(age == 1, birthWeight, staticwt))
+# complete_data <- complete_data %>%
+#   mutate(smooth_dailywt = ifelse(age == 1, birthWeight, smooth_dailywt))
+# 
+# complete_data <- complete_data %>%
+#   mutate(staticwt = ifelse(age == 1, birthWeight, staticwt))
+
 
 complete_data$breed[complete_data$breed == "Brahman"] <- 1
 complete_data$breed[complete_data$breed == "Composite"] <- 2
@@ -297,7 +302,7 @@ complete_data$sex[complete_data$sex == "female"] <- 0
 complete_data$sex[complete_data$sex == "male"] <- 1
 
 
-# counting number of dailywt records for each animal
+# counting number of dailywt records for each animal and selecting animals with at least 2 wt records
 
 complete_dailywts <- subset(complete_data, !is.na(smooth_dailywt))
 
@@ -312,30 +317,47 @@ dailywts_count <- dailywts_count %>%
   filter(count >= 2)
 
 
-## 
-# complete_dailywts <- complete_data %>%
-#   filter(!is.na(smooth_dailywt)) %>%
-#   mutate(AgeGroup = cut(age, breaks = c(0, 200, 400, 700), labels = c("0-200", "201-400", "401-700")))
+selected_RFID <- dailywts_count$RFID
+
+selected_data <- complete_data %>%
+  filter(RFID %in% selected_RFID) %>%
+  select(RFID, smooth_dailywt, age, sex, breed, birthWeight, monthly_rain, monthly_temp)
+
+
+
+# example_data <- subset(selected_data, age >=600 & !is.na(smooth_dailywt))
+# unique(example_data$RFID)
+
+# selected_data <- selected_data %>%
+#   mutate(smooth_dailywt = ifelse(age == 1, birthWeight, smooth_dailywt))
 # 
-# selected_dailywts <- complete_dailywts %>%
+# selected_data <- selected_data %>%
+#   mutate(staticwt = ifelse(age == 1, birthWeight, staticwt))
+
+#linear interpolation of dailywts to get the weights for missing days
+# selected_data <- selected_data %>%
 #   group_by(RFID) %>%
-#   summarise(NumDistinctAgeGroups = n_distinct(AgeGroup)) %>%
-#   filter(NumDistinctAgeGroups == 3)
+#   mutate(smooth_dailywt = approx(x = age, y = smooth_dailywt, xout = age)$y)
+# 
+# selected_data$smooth_dailywt <- round(selected_data$smooth_dailywt, 2)
+# 
+# selected_data <- subset(selected_data, age <= 900)
 
 
 #splitting dataset for training (75%) and testing (25%) the models
+
 set.seed(123)
 
-proportion_model <- 0.75
+proportion_model <- 0.7
 
 train_animals <- sample(selected_RFID, size = floor(proportion_model * length(selected_RFID)))
 
 test_animals <- setdiff(selected_RFID, train_animals)
 
-data_train <- complete_data %>%
+data_train <- selected_data %>%
   filter(RFID %in% train_animals)
 
-data_test <- complete_data %>%
+data_test <- selected_data %>%
   filter(RFID %in% test_animals)
 
 
@@ -346,33 +368,28 @@ data_test <- complete_data %>%
 model_mlr <- lm(smooth_dailywt ~ age + sex + breed + birthWeight + monthly_rain + monthly_temp, data = data_train)
 
 summary(model_mlr)
-AIC(model_mlr)
-BIC(model_mlr)
 
+# data_predicted <- data_test[, c("RFID", "smooth_dailywt", "age", "sex", "breed", "birthWeight", "monthly_rain", "monthly_temp")]
 
-data_predicted <- data_test[, c("RFID", "smooth_dailywt", "age", "sex", "breed", "birthWeight", "monthly_rain", "monthly_temp")]
+data_test$predicted_mlr <- predict(model_mlr, newdata = data_test)
 
-data_predicted$predicted_mlr <- predict(model_mlr, newdata = data_predicted)
-
-data_predicted$predicted_mlr <- round(data_predicted$predicted_mlr, 2)
+data_test$predicted_mlr <- round(data_test$predicted_mlr, 2)
 
 
 #RMSE_mlr
-sqrt(mean((data_predicted$predicted_mlr - data_predicted$smooth_dailywt)^2, na.rm = TRUE))
-
-#CCC_mlr
-CCC(data_predicted$smooth_dailywt, data_predicted$predicted_mlr, ci = "z-transform", conf.level = 0.95, na.rm = TRUE)$rho.c
-
-#rsq_mlr
-summary(lm(smooth_dailywt ~ predicted_mlr, data = data_predicted))$r.squared
-
+sqrt(mean((data_test$predicted_mlr - data_test$smooth_dailywt)^2, na.rm = TRUE))
 
 #mae_mlr
-mean(abs(data_predicted$smooth_dailywt - data_predicted$predicted_mlr), na.rm = TRUE)
+mean(abs(data_test$smooth_dailywt - data_test$predicted_mlr), na.rm = TRUE)
 
 #mape_mlr
-mean(abs((data_predicted$smooth_dailywt - data_predicted$predicted_mlr) / data_predicted$smooth_dailywt), na.rm = TRUE) * 100
+mean(abs((data_test$smooth_dailywt - data_test$predicted_mlr) / data_test$smooth_dailywt), na.rm = TRUE) * 100
 
+#CCC_mlr
+CCC(data_test$smooth_dailywt, data_test$predicted_mlr, ci = "z-transform", conf.level = 0.95, na.rm = TRUE)$rho.c
+
+#rsq_mlr
+summary(lm(smooth_dailywt ~ predicted_mlr, data = data_test))$r.squared
 
 
 
@@ -386,29 +403,30 @@ target <- "smooth_dailywt"
 train_data <- data_rf[features]
 
 # Fit the Random Forest model
-model_rf <- randomForest(train_data, data_rf[[target]])
+model_rf <- randomForest(train_data, data_rf[[target]], ntree = 500, mtry = 2)
 
 summary(model_rf)
 
 data_predict <- na.omit(data_test[, c("RFID", "age", "sex", "breed", "birthWeight", "monthly_rain", "monthly_temp")])
 
-data_predicted$predicted_rf <- predict(model_rf, newdata = data_predict)
+data_test$predicted_rf <- predict(model_rf, newdata = data_predict)
 
-data_predicted$predicted_rf <- round(data_predicted$predicted_rf, 2)
+data_test$predicted_rf <- round(data_test$predicted_rf, 2)
 
 #RMSE_rf
-sqrt(mean((data_predicted$predicted_rf - data_predicted$smooth_dailywt)^2, na.rm = TRUE))
-
-
-# rsq_rf
-summary(lm(smooth_dailywt ~ predicted_rf, data = data_predicted))$r.squared
-
+sqrt(mean((data_test$predicted_rf - data_test$smooth_dailywt)^2, na.rm = TRUE))
 
 #mae_rf
-mean(abs(data_predicted$smooth_dailywt - data_predicted$predicted_rf), na.rm = TRUE)
+mean(abs(data_test$smooth_dailywt - data_test$predicted_rf), na.rm = TRUE)
 
 #mape_rf
-mean(abs((data_predicted$smooth_dailywt - data_predicted$predicted_rf) / data_predicted$smooth_dailywt), na.rm = TRUE) * 100
+mean(abs((data_test$smooth_dailywt - data_test$predicted_rf) / data_test$smooth_dailywt), na.rm = TRUE) * 100
+
+#CCC_rf
+CCC(data_test$smooth_dailywt, data_test$predicted_rf, ci = "z-transform", conf.level = 0.95, na.rm = TRUE)$rho.c
+
+# rsq_rf
+summary(lm(smooth_dailywt ~ predicted_rf, data = data_test))$r.squared
 
 
 
@@ -440,6 +458,19 @@ mean(abs((data_predicted$smooth_dailywt - data_predicted$predicted_rf) / data_pr
 # mean(abs((data_predicted$smooth_dailywt - data_predicted$predicted_dt) / data_predicted$smooth_dailywt), na.rm = TRUE) * 100
 
 
+# model predictions
+
+data_predicted <- selected_data
+
+data_predicted$predicted_mlr <- predict(model_mlr, newdata = data_predicted)
+data_predicted$predicted_mlr <- round(data_predicted$predicted_mlr, 2)
+
+
+predict_rf <- na.omit(data_predicted[, c("RFID", "age", "sex", "breed", "birthWeight", "monthly_rain", "monthly_temp")])
+
+data_predicted$predicted_rf <- predict(model_rf, newdata = predict_rf)
+data_predicted$predicted_rf <- round(data_predicted$predicted_rf, 2)
+
 
 # plotting ###
 
@@ -461,60 +492,198 @@ grid.arrange(plot_model_mlr, plot_model_rf, nrow = 1)
 
 
 data_avg <- data_predicted %>%
-  mutate(age_interval = age) %>%
-  group_by(age_interval) %>%
+  group_by(age) %>%
   summarise(dailywt_avg = round(mean(smooth_dailywt, na.rm = TRUE), 2),
             mlr_avg = round(mean(predicted_mlr, na.rm = TRUE), 2),
             rf_avg = round(mean(predicted_rf, na.rm = TRUE), 2))
 
 
-data_dailywts <- subset(complete_data, !is.na(smooth_dailywt) & age !=1)
+data_dailywts <- subset(data_predicted, !is.na(smooth_dailywt))
 
 ggplot() +
   geom_histogram(data = data_dailywts, aes(age), binwidth = 10, color = "black", fill = "grey") +
-  # geom_point(data = data_avg, aes(x = age_interval, y = dailywt_avg * 10)) +
-  geom_line(data = data_avg[!is.nan(data_avg$dailywt_avg), ], aes(x = age_interval, y = dailywt_avg * 5)) +
+  # geom_point(data = data_avg, aes(x = age, y = dailywt_avg * 5)) +
+  geom_line(data = data_avg[!is.nan(data_avg$dailywt_avg), ], aes(x = age, y = dailywt_avg * 5)) +
   scale_x_continuous(name = "Age (days)", breaks = seq(0, 900, by = 100), limits = c(0, 900)) +
-  scale_y_continuous(name = "No. of walk-over weight records", breaks = seq(0, 4000, by = 500), 
+  scale_y_continuous(name = "No. of WOW records", breaks = seq(0, 4000, by = 500), 
                      sec.axis = sec_axis(trans = ~ ./5, name = "Weight (kg)", breaks = seq(0, 600, by = 100)))
 
 
 
 ggplot() +
   geom_line(data = data_avg[!is.nan(data_avg$dailywt_avg), ], 
-            aes(x = age_interval, y = dailywt_avg, linetype = "Smoothed WO weight")) +
+            aes(x = age, y = dailywt_avg, linetype = "Smoothed WOW")) +
   geom_line(data = data_avg[!is.nan(data_avg$mlr_avg), ], 
-            aes(x = age_interval, y = mlr_avg, linetype = "MLR prediction")) +
+            aes(x = age, y = mlr_avg, linetype = "MLR prediction")) +
   geom_line(data = data_avg[!is.nan(data_avg$rf_avg), ], 
-            aes(x = age_interval, y = rf_avg, linetype = "RF prediction")) +
+            aes(x = age, y = rf_avg, linetype = "RF prediction")) +
   labs(linetype = NULL) + 
   theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.75, 0.28)) +
   scale_x_continuous(name = "Age (days)", breaks = seq(0, 900, by = 100), limits = c(0, 900)) +
   scale_y_continuous(name = "Weight (kg)", breaks = seq(0, 600, by = 100), limits = c(0, 600)) +
-  scale_linetype_manual(values = c("Smoothed WO weight" = "solid",
-                                   "MLR prediction" = "dashed",
+  scale_linetype_manual(values = c("Smoothed WOW" = "solid",
+                                   "MLR prediction" = "dotted",
                                    "RF prediction" = "longdash"))
 
 
 # tables
+# getting 200-day, 400-day and 600-day weights
+
+data_predicted <- data_predicted %>%
+  group_by(RFID) %>%
+  mutate(est_dailywt = approx(x = age, y = smooth_dailywt, xout = age)$y)
+
+data_predicted$est_dailywt <- round(data_predicted$est_dailywt, 2)
+
+wow_200d <- subset(data_predicted, age == 200 & !is.na(est_dailywt))
+
+wow_400d <- subset(data_predicted, age == 400 & !is.na(est_dailywt))
+
+wow_600d <- subset(data_predicted, age == 600 & !is.na(est_dailywt))
 
 
+# #RMSE_mlr
+# sqrt(mean((wow_200d$predicted_mlr - wow_200d$est_dailywt)^2, na.rm = TRUE))
+# sqrt(mean((wow_400d$predicted_mlr - wow_400d$est_dailywt)^2, na.rm = TRUE))
+# sqrt(mean((wow_600d$predicted_mlr - wow_600d$est_dailywt)^2, na.rm = TRUE))
+# 
+# #mae_mlr
+# mean(abs(wow_200d$est_dailywt - wow_200d$predicted_mlr), na.rm = TRUE)
+# mean(abs(wow_400d$est_dailywt - wow_400d$predicted_mlr), na.rm = TRUE)
+# mean(abs(wow_600d$est_dailywt - wow_600d$predicted_mlr), na.rm = TRUE)
+# 
+# #mape_mlr
+# mean(abs((wow_200d$est_dailywt - wow_200d$predicted_mlr) / wow_200d$est_dailywt), na.rm = TRUE) * 100
+# mean(abs((wow_400d$est_dailywt - wow_400d$predicted_mlr) / wow_400d$est_dailywt), na.rm = TRUE) * 100
+# mean(abs((wow_600d$est_dailywt - wow_600d$predicted_mlr) / wow_600d$est_dailywt), na.rm = TRUE) * 100
+# 
+# # rsq_mlr
+# summary(lm(est_dailywt ~ predicted_mlr, data = wow_200d))$r.squared
+# summary(lm(est_dailywt ~ predicted_mlr, data = wow_400d))$r.squared
+# summary(lm(est_dailywt ~ predicted_mlr, data = wow_600d))$r.squared
+# 
+# 
+# #RMSE_rf
+# sqrt(mean((wow_200d$predicted_rf - wow_200d$est_dailywt)^2, na.rm = TRUE))
+# sqrt(mean((wow_400d$predicted_rf - wow_400d$est_dailywt)^2, na.rm = TRUE))
+# sqrt(mean((wow_600d$predicted_rf - wow_600d$est_dailywt)^2, na.rm = TRUE))
+# 
+# #mae_rf
+# mean(abs(wow_200d$est_dailywt - wow_200d$predicted_rf), na.rm = TRUE)
+# mean(abs(wow_400d$est_dailywt - wow_400d$predicted_rf), na.rm = TRUE)
+# mean(abs(wow_600d$est_dailywt - wow_600d$predicted_rf), na.rm = TRUE)
+# 
+# #mape_rf
+# mean(abs((wow_200d$est_dailywt - wow_200d$predicted_rf) / wow_200d$est_dailywt), na.rm = TRUE) * 100
+# mean(abs((wow_400d$est_dailywt - wow_400d$predicted_rf) / wow_400d$est_dailywt), na.rm = TRUE) * 100
+# mean(abs((wow_600d$est_dailywt - wow_600d$predicted_rf) / wow_600d$est_dailywt), na.rm = TRUE) * 100
+# 
+# # rsq_rf
+# summary(lm(est_dailywt ~ predicted_rf, data = wow_200d))$r.squared
+# summary(lm(est_dailywt ~ predicted_rf, data = wow_400d))$r.squared
+# summary(lm(est_dailywt ~ predicted_rf, data = wow_600d))$r.squared
+
+# descriptive statistics
+
+#200d
+min(wow_200d$est_dailywt)
+mean(wow_200d$est_dailywt)
+max(wow_200d$est_dailywt)
+sd(wow_200d$est_dailywt)
+sd(wow_200d$est_dailywt)/mean(wow_200d$est_dailywt) * 100
+
+min(wow_200d$predicted_mlr)
+mean(wow_200d$predicted_mlr)
+max(wow_200d$predicted_mlr)
+sd(wow_200d$predicted_mlr)
+sd(wow_200d$predicted_mlr)/mean(wow_200d$predicted_mlr) * 100
+
+min(wow_200d$predicted_rf)
+mean(wow_200d$predicted_rf)
+max(wow_200d$predicted_rf)
+sd(wow_200d$predicted_rf)
+sd(wow_200d$predicted_rf)/mean(wow_200d$predicted_rf) * 100
+
+#400d
+min(wow_400d$est_dailywt)
+mean(wow_400d$est_dailywt)
+max(wow_400d$est_dailywt)
+sd(wow_400d$est_dailywt)
+sd(wow_400d$est_dailywt)/mean(wow_400d$est_dailywt) * 100
+
+min(wow_400d$predicted_mlr)
+mean(wow_400d$predicted_mlr)
+max(wow_400d$predicted_mlr)
+sd(wow_400d$predicted_mlr)
+sd(wow_400d$predicted_mlr)/mean(wow_400d$predicted_mlr) * 100
+
+min(wow_400d$predicted_rf)
+mean(wow_400d$predicted_rf)
+max(wow_400d$predicted_rf)
+sd(wow_400d$predicted_rf)
+sd(wow_400d$predicted_rf)/mean(wow_400d$predicted_rf) * 100
 
 
+#600d
+min(wow_600d$est_dailywt)
+mean(wow_600d$est_dailywt)
+max(wow_600d$est_dailywt)
+sd(wow_600d$est_dailywt)
+sd(wow_600d$est_dailywt)/mean(wow_600d$est_dailywt) * 100
+
+min(wow_600d$predicted_mlr)
+mean(wow_600d$predicted_mlr)
+max(wow_600d$predicted_mlr)
+sd(wow_600d$predicted_mlr)
+sd(wow_600d$predicted_mlr)/mean(wow_600d$predicted_mlr) * 100
+
+min(wow_600d$predicted_rf)
+mean(wow_600d$predicted_rf)
+max(wow_600d$predicted_rf)
+sd(wow_600d$predicted_rf)
+sd(wow_600d$predicted_rf)/mean(wow_600d$predicted_rf) * 100
 
 
+# other calculations for manuscript #####
+####
+min(selected_data$smooth_dailywt, na.rm = TRUE)
+max(selected_data$smooth_dailywt, na.rm = TRUE)
+mean(selected_data$smooth_dailywt, na.rm = TRUE)
+sd(selected_data$smooth_dailywt, na.rm = TRUE)
 
 
+####
+weights_before600 <- subset(selected_data, age <= 600 & !is.na(smooth_dailywt))
+weights_after600 <- subset(selected_data, age > 600 & !is.na(smooth_dailywt))
 
 
+before600_count <- data.frame(RFID = character(), count = numeric())
+
+for (i in unique(weights_before600$RFID)) {
+  count <- data.frame(RFID = i, count = sum(weights_before600$RFID == i))
+  before600_count <- rbind(before600_count, count)
+}
+
+after600_count <- data.frame(RFID = character(), count = numeric())
+
+for (i in unique(weights_before600$RFID)) {
+  count <- data.frame(RFID = i, count = sum(weights_after600$RFID == i))
+  after600_count <- rbind(after600_count, count)
+}
+
+t.test(before600_count$count, after600_count$count)$p.value
 
 
+####
+min(data_predicted$predicted_mlr)
+max(data_predicted$predicted_mlr)
+mean(data_predicted$predicted_mlr)
+sd(data_predicted$predicted_mlr)
 
-
-
-
-
-
+min(data_predicted$predicted_rf)
+max(data_predicted$predicted_rf)
+mean(data_predicted$predicted_rf)
+sd(data_predicted$predicted_rf)
 
 
 
