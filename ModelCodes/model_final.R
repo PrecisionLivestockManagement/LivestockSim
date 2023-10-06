@@ -6,6 +6,7 @@ library(gridExtra)
 library(zoo)
 library(DescTools)
 library(randomForest)
+library(xgboost)
 library(rpart)
 
 
@@ -34,6 +35,8 @@ Belmont_DOB <- select(Belmont_DOB, -c(X, X_id))
 Belmont_DOB <- subset(Belmont_DOB, birthDate != "1970-01-01" & birthDate != "2023-01-01" & breed != "xxxxxx")
 Belmont_DOB <- subset(Belmont_DOB, birthWeight > 0)
 Belmont_DOB$breed[Belmont_DOB$breed == "Composite "] <- "Composite"
+Belmont_DOB <- Belmont_DOB[-c(2333, 2354), ]
+
 
 weather_alltime <- weather_alltime[, c("YYYY.MM.DD", "daily_rain", "max_temp", "min_temp")]
 colnames(weather_alltime)[colnames(weather_alltime) == "YYYY.MM.DD"] <- 'Date'
@@ -50,17 +53,7 @@ weather_data <- weather_data %>%
 
 weather_data <- weather_data %>%
   group_by(month = format(Date, "%Y-%m")) %>%
-  mutate(rain_sd = round(sd(daily_rain), 2))
-
-# Calculate monthly average temperature and add it as a new column in 'weather_data'
-weather_data <- weather_data %>%
-  group_by(month = format(Date, "%Y-%m")) %>%
   mutate(monthly_temp = round(mean(avg_temp), 2))
-
-weather_data <- weather_data %>%
-  group_by(month = format(Date, "%Y-%m")) %>%
-  mutate(temp_sd = round(sd(avg_temp), 2)) %>%
-  ungroup()
 
 weather_data_monthly <- weather_data[, -c(2:6)]
 
@@ -73,113 +66,38 @@ DOB_data <- Belmont_DOB %>%
   filter(RFID %in% common_RFID) %>%
   distinct()
 
-dailywts_raw <- dailywts_alltime %>%
+dailywts_all <- dailywts_alltime %>%
   filter(RFID %in% common_RFID)
 
-staticwts_raw <- staticwts_alltime %>%
+staticwts_all <- staticwts_alltime %>%
   filter(RFID %in% common_RFID)
 
+staticwts_data <- subset(staticwts_all, staticwt >= 19)
 
-# outlier removal of static weights
-staticwts <- subset(staticwts_raw, staticwt >= min(DOB_data$birthWeight))
-
-staticwts <- staticwts %>%
-  group_by(RFID) %>%
-  mutate(mean_staticwt = round(mean(staticwt), 2), sd_staticwt = round(sd(staticwt), 2))
-
-
-staticwts_out <- data.frame()
-
-for (i in unique(staticwts$RFID)) {
-  animal_data <- subset(staticwts, RFID == i)
-  
-  lower_limit <- animal_data$mean_staticwt - 1.5 * animal_data$sd_staticwt
-  upper_limit <- animal_data$mean_staticwt + 1.5 * animal_data$sd_staticwt
-  
-  filtered_animal_data <- subset(animal_data, staticwt >= lower_limit & staticwt <= upper_limit)
-  staticwts_out <- rbind(staticwts_out, filtered_animal_data)
-}
-
-staticwts_out <- staticwts_out[, -c(4, 5)]
-
-# averaging if more than 1 record in a single day
-staticwts_data <- staticwts_out %>%
+# averaging staticwts if more than one record in a day
+staticwts_data <- staticwts_data %>%
   group_by(RFID, Date) %>%
   summarise(staticwt = round(mean(staticwt), 2)) %>%
   ungroup()
 
-
-# outlier removal of dailywts
-dailywts <- subset(dailywts_raw, dailywt >= min(DOB_data$birthWeight) & dailywt <= 2 * max(staticwts_out$staticwt))
-
-dailywts <- dailywts %>%
-  group_by(RFID) %>%
-  mutate(mean_dailywt = round(mean(dailywt), 2), sd_dailywt = round(sd(dailywt), 2))
-
-dailywts_out <- data.frame()
-
-for (i in unique(dailywts$RFID)) {
-  animal_data <- subset(dailywts, RFID == i)
-  
-  lower_limit <- animal_data$mean_dailywt - 1.5 * animal_data$sd_dailywt
-  upper_limit <- animal_data$mean_dailywt + 1.5 * animal_data$sd_dailywt
-  
-  filtered_animal_data <- subset(animal_data, dailywt >= lower_limit & dailywt <= upper_limit)
-  dailywts_out <- rbind(dailywts_out, filtered_animal_data)
-}
-
-dailywts_out <- dailywts_out[, -c(4, 5)]
-
-# averaging dailywts if more than one record in a day
-dailywts_data <- dailywts_out %>%
-  group_by(RFID, Date) %>%
-  summarise(dailywt = round(mean(dailywt), 2)) %>%
-  ungroup()
-
-# # selecting animals with at least 2 days of dailywts record
-# dailywts_data <- dailywts_data %>%
-#   group_by(RFID) %>%
-#   filter(n_distinct(Date) >= 2) %>%
-#   ungroup()
+dailywts_data <- subset(dailywts_all, dailywt >= 19 & dailywt <= max(staticwts_data$staticwt))
 
 
 # approach to find optimum window size for rolling average for smoothing of wow ####
+
 #selecting static weights between 2023-03-03 to 2023-03-31
 staticwts_rollavg <- subset(staticwts_data, Date >= "2023-03-03" & Date <= "2023-03-31")
-
-staticwts_rollavg <- staticwts_rollavg %>%
-  group_by(RFID) %>%
-  filter(n_distinct(Date) >= 2) %>%
-  ungroup()
 
 ggplot(staticwts_rollavg, aes(Date, y = staticwt)) +
   geom_point()
 
 
-# linear interpolation to get the static weights for the missing days
-dates_staticwt_rollavg <- seq(as.Date("2023-03-03"), as.Date("2023-03-31"), by = "day")
-new_staticwts_rollavg <- expand.grid(RFID = unique(staticwts_rollavg$RFID), Date = dates_staticwt_rollavg)
+# # selecting wow between 2023-02-21 to 2023-04-10 (10 day prior and 10 days after of static weight days) for animals selected
 
-merged_staticwts_rollavg <- merge(new_staticwts_rollavg, staticwts_rollavg, by = c("RFID", "Date"), all.x = TRUE)
-
-staticwts_splited_rollavg <- split(merged_staticwts_rollavg, f = merged_staticwts_rollavg$RFID)
-
-est_staticwts_rollavg <- list()
-
-for (i in seq_along(staticwts_splited_rollavg)) {
-  est_staticwts_rollavg[[i]] <- with(staticwts_splited_rollavg[[i]], approx(x = Date, y = staticwt, xout = dates_staticwt_rollavg)$y)
-}
-
-staticwts_estimated <- cbind(merged_staticwts_rollavg, est_staticwts = unlist(est_staticwts_rollavg))
-staticwts_estimated$est_staticwts <- round(staticwts_estimated$est_staticwts, 2)
-
-
-# selecting wow between 2023-02-16 to 2023-04-15 (10 day prior and 10 days after of static weight days) for animals selected
 dailywts_rollavg <- subset(dailywts_data, Date >= "2023-02-21" & Date <= "2023-04-10")
 
 dailywts_rollavg <- dailywts_rollavg %>%
   filter(RFID %in% unique(staticwts_rollavg$RFID))
-
 
 dailywts_rollavg$avg_1DW <- dailywts_rollavg$dailywt
 
@@ -213,84 +131,116 @@ for (i in unique(merged_dailywts_rollavg$RFID)) {
   dailywts_rollavg_list[[i]] <- temp_df
 }
 
-dailywts_rollavg <- do.call(rbind, dailywts_rollavg_list)
+dailywts_roll <- do.call(rbind, dailywts_rollavg_list)
 
 
-allwts_rollavg <- merge(dailywts_rollavg, staticwts_estimated, by = c("RFID", "Date"))
+allwts_rollavg <- merge(dailywts_roll, staticwts_rollavg, by = c("RFID", "Date"))
 
 
 simulated_data <- allwts_rollavg[, !(names(allwts_rollavg) %in% c("RFID", "Date", "dailywt", "staticwt", "est_staticwts"))]
 
-CCC_values <- data.frame(window_size = numeric(), ccc = numeric(), RMSE = numeric(), rsq = numeric())
+CCC_values <- data.frame(window_size = numeric(), ccc = numeric())
 
 for (col_name in names(simulated_data)) {
   ccc_result <- CCC(simulated_data[[col_name]], allwts_rollavg$staticwt, ci = "z-transform", conf.level = 0.95, na.rm = TRUE)
   
-  squared_diff <- (simulated_data[[col_name]] - allwts_rollavg$staticwt)^2
-  RMSE <- sqrt(mean(squared_diff, na.rm = TRUE))
-  
-  data <- data.frame(simulated_data[[col_name]], allwts_rollavg$staticwt)
-  model <- lm(allwts_rollavg$staticwt ~ simulated_data[[col_name]], data = data)
-  rsq <- summary(model)$r.squared
-  
-  CCC_values <- rbind(CCC_values, data.frame(window = col_name, ccc = ccc_result$rho.c, RMSE = RMSE, rsq = rsq))
+  CCC_values <- rbind(CCC_values, data.frame(window = col_name, ccc = ccc_result$rho.c))
 }
 
-CCC_values <- data.frame(window_size = 1:20, ccc = CCC_values$ccc.est, RMSE = CCC_values$RMSE, rsq = CCC_values$rsq)
+CCC_values <- data.frame(window_size = 1:20, ccc = round(CCC_values$ccc.est, 3))
+
+CCC_values$ccc_diff <- c(0, diff(CCC_values$ccc))
 
 
-plot1 <- ggplot(CCC_values, aes(x = window_size, y = ccc)) +
-  geom_line() + geom_point() + xlab("Window size") + ylab("CCC")
-
-plot2 <- ggplot(CCC_values, aes(x = window_size, y = RMSE)) +
-  geom_line() + geom_point() + xlab("Window size")
-
-grid.arrange(plot1, plot2, nrow = 1)
+ggplot(CCC_values, aes(x = window_size, y = ccc)) +
+  geom_line() + geom_point() + xlab("Window size") + ylab("CCC") +
+  scale_y_continuous(breaks = seq(0.4, 1, by = 0.1)) +
+  scale_x_continuous(breaks = seq(0, 30, by = 4))
 
 
-# using 11 days rolling average to smooth the dailywts_data (max CCC and least RMSE) ####
 
-dates_dailywt <- seq(min(as.Date(DOB_data$birthDate)), max(as.Date(dailywts_data$Date)), by = "day")
+
+
+### Outlier deletion ####
+
+# outlier removal of dailywts 
+
+dates_dailywt <- seq(min(as.Date(dailywts_data$Date)), max(as.Date(dailywts_data$Date)), by = "day")
 new_dailywts <- expand.grid(RFID = unique(dailywts_data$RFID), Date = dates_dailywt)
 
 merged_dailywts <- merge(new_dailywts, dailywts_data, by = c("RFID", "Date"), all.x = TRUE)
 
-dailywts_rollavg <- list()
+dailywts_raw <- list()
 
 for (i in unique(merged_dailywts$RFID)) {
   animal_data <- subset(merged_dailywts, RFID == i)
   
-  smooth_dailywt <- rollmean(animal_data$dailywt, k = 11, align = 'center', na.pad = TRUE, na.rm = TRUE)
+  roll_avg <- rollapply(animal_data$dailywt, width = 12, align = 'center', FUN = mean, fill = NA, na.rm = TRUE)
+  
+  roll_sd <- rollapply(animal_data$dailywt, width = 12, align = 'center', FUN = sd, fill = NA, na.rm = TRUE)
+  
+  rollavg_animal_data <- cbind(animal_data, roll_avg, roll_sd)
+  
+  dailywts_raw <- rbind(dailywts_raw, rollavg_animal_data)
+}
+
+dailywts_raw$roll_avg <- round(dailywts_raw$roll_avg, 2)
+dailywts_raw$roll_sd <- round(dailywts_raw$roll_sd, 2)
+
+dailywts_raw <- subset(dailywts_raw, !is.na(dailywts_raw$dailywt))
+
+
+dailywts_raw$lower_limit <- dailywts_raw$roll_avg - dailywts_raw$roll_sd
+dailywts_raw$upper_limit <- dailywts_raw$roll_avg + dailywts_raw$roll_sd
+
+dailywts_out <- subset(dailywts_raw, dailywt >= lower_limit & dailywt <= upper_limit)
+
+
+# averaging dailywts if more than one record in a day
+dailywts_out <- dailywts_out %>%
+  group_by(RFID, Date) %>%
+  summarise(dailywt = round(mean(dailywt), 2)) %>%
+  ungroup()
+
+
+# using 12 days rolling average to smooth the dailywts_data (max CCC and least RMSE) ####
+
+dates_dailywt_smooth <- seq(min(as.Date(dailywts_out$Date)), max(as.Date(dailywts_out$Date)), by = "day")
+new_dailywts_smooth <- expand.grid(RFID = unique(dailywts_out$RFID), Date = dates_dailywt_smooth)
+
+merged_dailywts_smooth <- merge(new_dailywts_smooth, dailywts_out, by = c("RFID", "Date"), all.x = TRUE)
+
+dailywts_smooth <- list()
+
+for (i in unique(merged_dailywts_smooth$RFID)) {
+  animal_data <- subset(merged_dailywts_smooth, RFID == i)
+  
+  smooth_dailywt <- rollapply(animal_data$dailywt, width = 12, align = 'center', FUN = mean, fill = NA, na.rm = TRUE)
   
   rollavg_animal_data <- cbind(animal_data, smooth_dailywt)
   
-  dailywts_rollavg <- rbind(dailywts_rollavg, rollavg_animal_data)
+  dailywts_smooth <- rbind(dailywts_smooth, rollavg_animal_data)
 }
 
-dailywts_rollavg$smooth_dailywt <- round(dailywts_rollavg$smooth_dailywt, 2)
-dailywts_rollavg$smooth_dailywt[is.nan(dailywts_rollavg$smooth_dailywt)] <- NA
+dailywts_smooth$smooth_dailywt <- round(dailywts_smooth$smooth_dailywt, 2)
+
+dailywts_smooth$smooth_dailywt[is.nan(dailywts_smooth$smooth_dailywt)] <- NA
+
 
 
 # merging dailywts and DOB, staticwts and weather data
-dailywts_DOB_data <- merge(dailywts_rollavg, DOB_data, by = "RFID")
 
-dailywts_staticwts_data <- merge(dailywts_DOB_data, staticwts_data, by = c("RFID", "Date"), all.x = TRUE, all.y = TRUE)
-
-complete_data <- merge(dailywts_staticwts_data, weather_data_monthly, by = "Date", all.x = TRUE)
+complete_data <- merge(merge(dailywts_smooth, DOB_data, by = "RFID"), weather_data_monthly, by = "Date", all.x = TRUE)
 
 complete_data$age <- as.numeric(as.Date(complete_data$Date) - as.Date(complete_data$birthDate) + 1)
 
-complete_data <- subset(complete_data, age >= 30 & age <= 900)
 
-# 
-# ggplot(complete_data, aes(x= age, y = dailywt)) +
-#   geom_point()
 
-# complete_data <- complete_data %>%
-#   mutate(smooth_dailywt = ifelse(age == 1, birthWeight, smooth_dailywt))
-# 
-# complete_data <- complete_data %>%
-#   mutate(staticwt = ifelse(age == 1, birthWeight, staticwt))
+
+ggplot(selected_data, aes(x = age, y = smooth_dailywt, color = RFID)) +
+  geom_line() +
+  guides(color = "none")
+
 
 
 complete_data$breed[complete_data$breed == "Brahman"] <- 1
@@ -302,7 +252,6 @@ complete_data$sex[complete_data$sex == "female"] <- 0
 complete_data$sex[complete_data$sex == "male"] <- 1
 
 
-# counting number of dailywt records for each animal and selecting animals with at least 2 wt records
 
 complete_dailywts <- subset(complete_data, !is.na(smooth_dailywt))
 
@@ -323,25 +272,7 @@ selected_data <- complete_data %>%
   filter(RFID %in% selected_RFID) %>%
   select(RFID, smooth_dailywt, age, sex, breed, birthWeight, monthly_rain, monthly_temp)
 
-
-
-# example_data <- subset(selected_data, age >=600 & !is.na(smooth_dailywt))
-# unique(example_data$RFID)
-
-# selected_data <- selected_data %>%
-#   mutate(smooth_dailywt = ifelse(age == 1, birthWeight, smooth_dailywt))
-# 
-# selected_data <- selected_data %>%
-#   mutate(staticwt = ifelse(age == 1, birthWeight, staticwt))
-
-#linear interpolation of dailywts to get the weights for missing days
-# selected_data <- selected_data %>%
-#   group_by(RFID) %>%
-#   mutate(smooth_dailywt = approx(x = age, y = smooth_dailywt, xout = age)$y)
-# 
-# selected_data$smooth_dailywt <- round(selected_data$smooth_dailywt, 2)
-# 
-# selected_data <- subset(selected_data, age <= 900)
+selected_data <- subset(complete_data, age >= 30 & age <= 900)
 
 
 #splitting dataset for training (75%) and testing (25%) the models
@@ -359,7 +290,6 @@ data_train <- selected_data %>%
 
 data_test <- selected_data %>%
   filter(RFID %in% test_animals)
-
 
 
 # Model 1 ####
@@ -390,7 +320,6 @@ CCC(data_test$smooth_dailywt, data_test$predicted_mlr, ci = "z-transform", conf.
 
 #rsq_mlr
 summary(lm(smooth_dailywt ~ predicted_mlr, data = data_test))$r.squared
-
 
 
 # model 2 ####
@@ -430,32 +359,37 @@ summary(lm(smooth_dailywt ~ predicted_rf, data = data_test))$r.squared
 
 
 
-# # decision tree model
-# 
-# model_dt <- rpart(smooth_dailywt ~ age + sex + breed + birthWeight + monthly_rain + monthly_temp, data = data_train)
-# 
-# summary(model_dt)
-# # plot(model_dt)
-# # text(model_dt)
-# 
-# # tree_predicted <- data_validation[, c("RFID", "smooth_dailywt", "age", "sex", "breed", "birthWeight", "monthly_rain", "monthly_temp")]
-# 
-# data_predicted$predicted_dt <- predict(model_dt, newdata = data_test)
-# 
-# 
-# #RMSE_2
-# sqrt(mean((data_predicted$predicted_dt - data_predicted$smooth_dailywt)^2, na.rm = TRUE))
-# 
-# # data_merged <- merge(data_model, data_predicted)
-# 
-# # rsq
-# summary(lm(smooth_dailywt ~ predicted_dt, data = data_predicted))$r.squared
-# 
-# #mae
-# mean(abs(data_predicted$smooth_dailywt - data_predicted$predicted_dt), na.rm = TRUE)
-# 
-# #mape
-# mean(abs((data_predicted$smooth_dailywt - data_predicted$predicted_dt) / data_predicted$smooth_dailywt), na.rm = TRUE) * 100
+# Extreme Gradient Boosting (XGBoost) ####
+train_xgb <- na.omit(data_train)
+
+model_xgb <- xgboost(
+  data = data.matrix(train_xgb[, c("age", "sex", "breed", "birthWeight", "monthly_rain", "monthly_temp")]),
+  label = train_xgb$smooth_dailywt,
+  nrounds = 100,  # Number of boosting rounds (adjust as needed)
+  objective = "reg:squarederror",  # Use squared error as the objective for regression
+  max_depth = 5,  # Maximum tree depth (adjust as needed)
+  eta = 0.1  # Learning rate (adjust as needed)
+)
+
+summary(model_xgb)
+
+data_test$predicted_xgb <- predict(model_xgb, newdata = data.matrix(data_test[, c("age", "sex", "breed", "birthWeight", "birthWeight", "monthly_rain", "monthly_temp")]))
+data_test$predicted_xgb <- round(data_test$predicted_xgb, 2)
+
+
+#RMSE_xgb
+sqrt(mean((data_test$predicted_xgb - data_test$smooth_dailywt)^2, na.rm = TRUE))
+
+#mae_xgb
+mean(abs(data_test$smooth_dailywt - data_test$predicted_xgb), na.rm = TRUE)
+
+#mape_xgb
+mean(abs((data_test$smooth_dailywt - data_test$predicted_xgb) / data_test$smooth_dailywt), na.rm = TRUE) * 100
+
+# rsq_xgb
+summary(lm(smooth_dailywt ~ predicted_xgb, data = data_test))$r.squared
+
+
 
 
 # model predictions
@@ -472,7 +406,11 @@ data_predicted$predicted_rf <- predict(model_rf, newdata = predict_rf)
 data_predicted$predicted_rf <- round(data_predicted$predicted_rf, 2)
 
 
-# plotting ###
+data_predicted$predicted_xgb <- predict(model_xgb, newdata = data.matrix(data_predicted[, c("age", "sex", "breed", "birthWeight", "monthly_rain", "monthly_temp")]))
+data_predicted$predicted_xgb <- round(data_predicted$predicted_xgb, 2)
+
+
+# plotting ####
 
 plot_model_mlr <- ggplot(data_predicted, aes(x = smooth_dailywt, y = predicted_mlr)) +
   geom_point() +
@@ -488,14 +426,22 @@ plot_model_rf <- ggplot(data_predicted, aes(x = smooth_dailywt, y = predicted_rf
   labs(x = "Smoothed WO weights (kg)", y = "Predicted weights (kg)") +
   theme_minimal()
 
-grid.arrange(plot_model_mlr, plot_model_rf, nrow = 1)
+plot_model_xgb <- ggplot(data_predicted, aes(x = smooth_dailywt, y = predicted_xgb)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue", formula = y ~ x) +
+  labs(x = "Smoothed WO weights (kg)", y = "Predicted weights (kg)") +
+  theme_minimal()
+
+grid.arrange(plot_model_mlr, plot_model_rf, plot_model_xgb, nrow = 1)
 
 
 data_avg <- data_predicted %>%
   group_by(age) %>%
   summarise(dailywt_avg = round(mean(smooth_dailywt, na.rm = TRUE), 2),
             mlr_avg = round(mean(predicted_mlr, na.rm = TRUE), 2),
-            rf_avg = round(mean(predicted_rf, na.rm = TRUE), 2))
+            rf_avg = round(mean(predicted_rf, na.rm = TRUE), 2),
+            xgb_avg = round(mean(predicted_rf, na.rm = TRUE), 2))
 
 
 data_dailywts <- subset(data_predicted, !is.na(smooth_dailywt))
@@ -515,18 +461,23 @@ ggplot() +
             aes(x = age, y = dailywt_avg, linetype = "Smoothed WOW")) +
   geom_line(data = data_avg[!is.nan(data_avg$mlr_avg), ], 
             aes(x = age, y = mlr_avg, linetype = "MLR prediction")) +
-  geom_line(data = data_avg[!is.nan(data_avg$rf_avg), ], 
-            aes(x = age, y = rf_avg, linetype = "RF prediction")) +
+  # geom_line(data = data_avg[!is.nan(data_avg$rf_avg), ], 
+  #           aes(x = age, y = rf_avg, linetype = "RF prediction")) +
+  geom_line(data = data_avg[!is.nan(data_avg$xgb_avg), ], 
+            aes(x = age, y = rf_avg, linetype = "XGB prediction")) +
   labs(linetype = NULL) + 
   theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.75, 0.28)) +
   scale_x_continuous(name = "Age (days)", breaks = seq(0, 900, by = 100), limits = c(0, 900)) +
   scale_y_continuous(name = "Weight (kg)", breaks = seq(0, 600, by = 100), limits = c(0, 600)) +
   scale_linetype_manual(values = c("Smoothed WOW" = "solid",
                                    "MLR prediction" = "dotted",
-                                   "RF prediction" = "longdash"))
+                                   # "RF prediction" = "longdash",
+                                   "XGB prediction" = "longdash"))
 
 
-# tables
+
+
+# tables ####
 # getting 200-day, 400-day and 600-day weights
 
 data_predicted <- data_predicted %>%
@@ -541,7 +492,7 @@ wow_400d <- subset(data_predicted, age == 400 & !is.na(est_dailywt))
 
 wow_600d <- subset(data_predicted, age == 600 & !is.na(est_dailywt))
 
-
+example_data <- subset(wow_200d, sex == 0 & breed == 1)
 # #RMSE_mlr
 # sqrt(mean((wow_200d$predicted_mlr - wow_200d$est_dailywt)^2, na.rm = TRUE))
 # sqrt(mean((wow_400d$predicted_mlr - wow_400d$est_dailywt)^2, na.rm = TRUE))
@@ -651,6 +602,10 @@ max(selected_data$smooth_dailywt, na.rm = TRUE)
 mean(selected_data$smooth_dailywt, na.rm = TRUE)
 sd(selected_data$smooth_dailywt, na.rm = TRUE)
 
+selected_data_na <- subset(selected_data, !is.na(smooth_dailywt))
+
+
+
 
 ####
 weights_before600 <- subset(selected_data, age <= 600 & !is.na(smooth_dailywt))
@@ -684,6 +639,22 @@ min(data_predicted$predicted_rf)
 max(data_predicted$predicted_rf)
 mean(data_predicted$predicted_rf)
 sd(data_predicted$predicted_rf)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

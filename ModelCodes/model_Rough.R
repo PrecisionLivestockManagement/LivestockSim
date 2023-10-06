@@ -1064,11 +1064,33 @@ ggplot(predicted_200d, aes(x = smooth_dailywt, y = predicted_200d)) +
 
 
 
+####### All properties data analysis #####
+
+all_dailywts <- get_dailywts()
+all_DOB <- get_cattle(fields = c("RFID", "stationname", 
+                                 "properties.sex", "properties.birthDate", 
+                                 "properties.birthWeight", "properties.breed"))
 
 
+# changing some column names and removing invalid records
+
+all_dailywts <- select(all_dailywts, -X)
+colnames(all_dailywts)[colnames(all_dailywts) == "Date"] <- "DateTime"
+all_dailywts$Date <- as.Date(all_dailywts$DateTime, format = "%d-%m-%y")
+colnames(all_dailywts)[colnames(all_dailywts) == "Weight"] <- "dailywt"
+all_dailywts <- all_dailywts[, -c(3:5)]
 
 
+all_DOB <- select(all_DOB, -c(X, X_id))
+all_DOB <- subset(all_DOB, breed != "xxxxxx" & birthDate != "1970-01-01" & birthDate != "2023-01-01")
+all_DOB$breed[all_DOB$breed == "Composite "] <- "Composite"
 
+all <- merge(all_dailywts, all_DOB, by = "RFID")
+all <- subset(all, birthWeight > 0)
+
+unique(all$stationname)
+unique(all_dailywts$Location)
+length(unique(all$RFID))
 
 
 
