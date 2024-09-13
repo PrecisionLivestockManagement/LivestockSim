@@ -360,20 +360,13 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
   return(data_sim[, -c(6:14)])
 }
 
-# # example simulation ####
-# n_females_BelmontRed <- 9
-# n_males_BelmontRed <- 10
-# n_females_Brahman  <- 0
-# n_males_Brahman <- 0
-# n_females_Composite <- 12
-# n_males_Composite <- 52
-# n_females_Unknown <- 0
-# n_males_Unknown <- 0
-# n_days <- 500
-# min_birthDate <- "2018-09-11"
-# max_birthDate <- "2019-01-01"
-# weather_data <- read.csv(file = "Data/WeatherData_example.csv")
-#
-# output <- sim_dailywt(0, 0, 0, 0, 0, 0, 50, 50, 100, "2018-09-01", "2019-02-01", weather_data)
 
+# simulation run
+weather_data_Belmont <- read.csv(file = "Data/weatherData_example.csv")
 
+output_data <- sim_dailywt(n_females_BelmontRed = 10, n_males_BelmontRed = 10,
+                           n_females_Brahman = 10, n_males_Brahman = 10,
+                           n_females_Composite = 10, n_males_Composite = 10,
+                           n_females_Unknown = 0, n_males_Unknown = 0,
+                           n_days = 500, min_birthDate = "2018-09-01", max_birthDate = "2019-02-01",
+                           weather_data = weather_data_Belmont)
