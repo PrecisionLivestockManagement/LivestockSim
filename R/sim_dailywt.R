@@ -1,10 +1,10 @@
-library(DMMongoDB)
-library(tidyverse)
-library(lubridate)
-library(gridExtra)
-library(zoo)
-library(DescTools)
-library(xgboost)
+# library(DMMongoDB)
+# library(tidyverse)
+# library(lubridate)
+# library(gridExtra)
+# library(zoo)
+# library(DescTools)
+# library(xgboost)
 
 ##############################################
 
@@ -34,15 +34,6 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
                       n_males_Unknown, n_females_Unknown,
                       n_days, min_birthDate, max_birthDate, weather_data) {
 
-  # library(DMMongoDB)
-  # library(tidyverse)
-  # library(lubridate)
-  # library(gridExtra)
-  # library(zoo)
-  # library(DescTools)
-  # library(xgboost)
-
-  # install.packages("tidyverse", "xgboost")
 
   # all animals
   n_animals <- n_males_BelmontRed + n_females_BelmontRed + n_males_Brahman + n_females_Brahman +
@@ -95,15 +86,15 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
 
 
   #####
-  Belmont_dailywts <- read.csv(file = "Data/Belmont_dailywts.csv")
+  Belmont_dailywts <- read.csv("https://raw.githubusercontent.com/PrecisionLivestockManagement/LivestockSim/main/Data/Belmont_dailywts.csv")
   Belmont_dailywts$stationname <- "Belmont"
-  Belmont_staticwts <- read.csv(file = "Data/Belmont_staticwts.csv")
-  Belmont_animals <- read.csv(file = "Data/Belmont_animals.csv")
+  Belmont_staticwts <- read.csv("https://github.com/PrecisionLivestockManagement/LivestockSim/blob/main/Data/Belmont_staticwts.csv")
+  Belmont_animals <- read.csv("https://github.com/PrecisionLivestockManagement/LivestockSim/blob/main/Data/Belmont_animals.csv")
 
-  Tremere_dailywts <- read.csv(file = "Data/Tremere_dailywts.csv")
+  Tremere_dailywts <- read.csv("https://github.com/PrecisionLivestockManagement/LivestockSim/blob/main/Data/Tremere_dailywts.csv")
   Tremere_dailywts$stationname <- "Tremere"
-  Tremere_staticwts <- read.csv(file = "Data/Tremere_staticwts.csv")
-  Tremere_animals <- read.csv(file = "Data/Tremere_animals.csv")
+  Tremere_staticwts <- read.csv("https://github.com/PrecisionLivestockManagement/LivestockSim/blob/main/Data/Tremere_staticwts.csv")
+  Tremere_animals <- read.csv("https://github.com/PrecisionLivestockManagement/LivestockSim/blob/main/Data/Tremere_animals.csv")
 
   # combine Belmont and Tremere data in a same dataframe
   dailywts_all <- rbind(Belmont_dailywts, Tremere_dailywts)
@@ -236,7 +227,7 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
     ungroup()
 
   # weather data processing
-  Belmont_weather <- read.csv(file = "Data/WeatherData_39083.csv")
+  Belmont_weather <- read.csv("https://github.com/PrecisionLivestockManagement/LivestockSim/blob/main/Data/WeatherData_39083.csv")
   Belmont_weather <- Belmont_weather[, c("YYYY.MM.DD", "daily_rain", "max_temp", "min_temp")]
   colnames(Belmont_weather)[colnames(Belmont_weather) == "YYYY.MM.DD"] <- 'Date'
   Belmont_weather$Date <- as.Date(Belmont_weather$Date)
@@ -256,7 +247,7 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
 
 
   # Tremere weather data processing (weather station is 50 km away)
-  Tremere_weather <- read.csv(file = "Data/WeatherData_39089_TR.csv")
+  Tremere_weather <- read.csv("https://github.com/PrecisionLivestockManagement/LivestockSim/blob/main/Data/WeatherData_39089_TR.csv")
   Tremere_weather <- Tremere_weather[, c("YYYY.MM.DD", "daily_rain", "max_temp", "min_temp")]
   colnames(Tremere_weather)[colnames(Tremere_weather) == "YYYY.MM.DD"] <- 'Date'
   Tremere_weather$Date <- as.Date(Tremere_weather$Date)
@@ -361,12 +352,12 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
 }
 
 
-# simulation run
-weather_data_Belmont <- read.csv(file = "Data/weatherData_example.csv")
-
-output_data <- sim_dailywt(n_females_BelmontRed = 10, n_males_BelmontRed = 10,
-                           n_females_Brahman = 10, n_males_Brahman = 10,
-                           n_females_Composite = 10, n_males_Composite = 10,
-                           n_females_Unknown = 0, n_males_Unknown = 0,
-                           n_days = 500, min_birthDate = "2018-09-01", max_birthDate = "2019-02-01",
-                           weather_data = weather_data_Belmont)
+# # simulation run
+# weather_data_Belmont <- read.csv("https://github.com/PrecisionLivestockManagement/LivestockSim/blob/main/Data/WeatherData_example.csv")
+#
+# output_data <- sim_dailywt(n_females_BelmontRed = 10, n_males_BelmontRed = 10,
+#                            n_females_Brahman = 10, n_males_Brahman = 10,
+#                            n_females_Composite = 10, n_males_Composite = 10,
+#                            n_females_Unknown = 0, n_males_Unknown = 0,
+#                            n_days = 500, min_birthDate = "2018-09-01", max_birthDate = "2019-02-01",
+#                            weather_data = weather_data_Belmont)
