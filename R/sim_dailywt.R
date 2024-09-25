@@ -32,7 +32,7 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
                       n_males_Brahman, n_females_Brahman,
                       n_males_Composite, n_females_Composite,
                       n_males_Unknown, n_females_Unknown,
-                      n_days, min_birthDate, max_birthDate, weather_data) {
+                      n_days, min_BirthDate, max_BirthDate, weather_data) {
 
 
   # all animals
@@ -40,7 +40,7 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
     n_males_Composite + n_females_Composite + n_males_Unknown + n_females_Unknown
 
   # birth dates are distributed randomly
-  birth_dates <- sample(seq(as.Date(min_birthDate), as.Date(max_birthDate), by = "days"),
+  birth_dates <- sample(seq(as.Date(min_BirthDate), as.Date(max_BirthDate), by = "days"),
                         n_animals, replace = TRUE)
 
   # creating data-frame with required predictor variables
@@ -153,14 +153,6 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
     summarise(staticwt = round(mean(staticwt), 2)) %>%
     ungroup()
 
-  # #selecting animals with at least 2 static weight records
-  # staticwts_data <- staticwts_data %>%
-  #   group_by(RFID) %>%
-  #   filter(n_distinct(staticwt) >=2)
-
-
-  # ggplot(staticwts_data, aes(x = Date, y = staticwt, color = RFID)) +
-  #   geom_point() + guides(color = "none")
 
   # using static wts as refrence weights
   staticwts_ref <- merge(staticwts_data, animals_selected, by = c("RFID", "stationname"))
@@ -204,11 +196,6 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
 
 
 
-  # dailywts_raw <- dailywts_raw %>%
-  #   group_by(age) %>%
-  #   mutate(avg_refWeight = round(mean(refWeight), 2),
-  #          sd_refWeight = round(sd(refWeight), 2))
-
   dailywts_raw$outlier <- ifelse(dailywts_raw$dailywt < (dailywts_raw$refWeight - 50) |
                                    dailywts_raw$dailywt > (dailywts_raw$refWeight + 50), dailywts_raw$dailywt, NA)
 
@@ -217,8 +204,6 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
 
   dailywts_out <- subset(dailywts_raw, !is.na(dailywt))
 
-  # dailywts_out <- subset(dailywts_raw, dailywt >= avg_refWeight - (2 * sd_refWeight) &
-  #                          dailywt <= avg_refWeight + (2 * sd_refWeight))
 
   # averaging dailywts if more than one record in a day
   dailywts_data <- dailywts_out %>%
@@ -347,17 +332,19 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
   set.seed(3)
   data_sim$Weight <- round(predict(model_xgb, newdata = data.matrix(data_sim[, c("age", "sex", "breed", "weather_factor")])), 2)
 
+  output_data <- data_sim[, -c(6:14)]
+  colnames(output_data) <- c("Date", "ID", "Breed", "Sex", "BirthDate", "Age", "Weight")
 
-  return(data_sim[, -c(6:14)])
+  return(output_data)
 }
 
 
 # # simulation run
 # weather_data_Belmont <- read.csv("https://raw.githubusercontent.com/PrecisionLivestockManagement/LivestockSim/refs/heads/main/Data/WeatherData_example.csv")
 #
-# output_data <- sim_dailywt(n_females_BelmontRed = 10, n_males_BelmontRed = 10,
+# simulated_data <- sim_dailywt(n_females_BelmontRed = 10, n_males_BelmontRed = 10,
 #                            n_females_Brahman = 10, n_males_Brahman = 10,
 #                            n_females_Composite = 10, n_males_Composite = 10,
 #                            n_females_Unknown = 0, n_males_Unknown = 0,
-#                            n_days = 500, min_birthDate = "2018-09-01", max_birthDate = "2019-02-01",
+#                            n_days = 500, min_BirthDate = "2018-09-01", max_BirthDate = "2019-02-01",
 #                            weather_data = weather_data_Belmont)
