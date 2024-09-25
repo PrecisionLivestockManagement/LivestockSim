@@ -150,5 +150,7 @@ growth_traits <- function (WOW_data) {
 
 
 # # Example run
-# growthtraits_output <- growth_traits(simulated_data)
+# data_input <- read.csv("https://raw.githubusercontent.com/PrecisionLivestockManagement/LivestockSim/refs/heads/main/Data/simulated_data.csv")
+#
+# growthtraits_output <- growth_traits(data_input)
 
