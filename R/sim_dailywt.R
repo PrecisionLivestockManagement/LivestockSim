@@ -332,7 +332,7 @@ sim_dailywt <- function(n_males_BelmontRed, n_females_BelmontRed,
   set.seed(3)
   data_sim$Weight <- round(predict(model_xgb, newdata = data.matrix(data_sim[, c("age", "sex", "breed", "weather_factor")])), 2)
 
-  output_data <- data_sim[, -c(6:14)]
+  output_data <- data_sim[, -c(6:13)]
   colnames(output_data) <- c("Date", "ID", "Breed", "Sex", "BirthDate", "Age", "Weight")
 
   return(output_data)
