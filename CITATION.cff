@@ -1,12 +1,10 @@
-# This CITATION.cff file was generated with cffinit.
-# Visit https://bit.ly/cffinit to generate yours today!
-
+#
 cff-version: 1.2.0
 title: LivestockSim
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
-type: software
+type: R Package
 authors:
   - given-names: Tek Raj
     family-names: Awasthi
@@ -18,3 +16,7 @@ identifiers:
   - type: url
     value: >-
       https://github.com/PrecisionLivestockManagement/LivestockSim
+  - type: doi
+    value: https://github.com/PrecisionLivestockManagement/LivestockSim
+  - type: url
+date-released: 2024
