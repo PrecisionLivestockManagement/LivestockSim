@@ -11,10 +11,5 @@ authors:
     family-names: Morshed
   - given-names: Dave
     family-names: Swain
-identifiers:
-  - type: url
-    value: >-
-      https://github.com/PrecisionLivestockManagement/LivestockSim
-date-released: "2024"
-version: "1.0.0"
+date: "2024"
 url: "https://github.com/PrecisionLivestockManagement/LivestockSim"
